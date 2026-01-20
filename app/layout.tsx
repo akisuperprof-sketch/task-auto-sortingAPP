@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LINE AI Task Manager",
+  title: "タスク自動整理 OS",
   description: "AI-powered task organization and sorting via LINE",
 };
 

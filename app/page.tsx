@@ -349,7 +349,7 @@ function DashboardContent() {
       <header className="max-w-[2200px] w-full mx-auto flex gap-2 md:gap-3 items-center mb-1 px-1 flex-shrink-0 h-6">
         <div className="flex items-center">
           <h1 className="text-[9px] md:text-[10px] font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase whitespace-nowrap">
-            TM-OS {version}
+            タスク自動整理 ver{version}
           </h1>
         </div>
 
@@ -370,7 +370,7 @@ function DashboardContent() {
           <div className="flex-[2] flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
             <input
               type="text"
-              placeholder="タスクを入力（AI解析）..."
+              placeholder="タスクを入力（AIで自動分類）..."
               value={newTaskValue}
               onChange={(e) => setNewTaskValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
