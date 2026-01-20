@@ -34,6 +34,8 @@ function DashboardContent() {
   const [showWatch, setShowWatch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [version, setVersion] = useState('');
+  const [newTaskValue, setNewTaskValue] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -98,6 +100,47 @@ function DashboardContent() {
     if (confirm('完全に削除しますか？')) {
       await supabase.from('tasks').delete().eq('id', id);
       setTasks(prev => prev.filter(t => t.id !== id));
+    }
+  };
+
+  const handleAddTask = async () => {
+    if (!newTaskValue.trim() || !userIdFromUrl || isAdding) return;
+    setIsAdding(true);
+    try {
+      // Use AI analysis similar to LINE bot to determine priority
+      const response = await fetch('/api/tasks/analyze', {
+        method: 'POST',
+        body: JSON.stringify({ text: newTaskValue.trim() }),
+      });
+      const analyzed = await response.json();
+
+      const toInsert = analyzed.map((t: any) => ({
+        ...t,
+        user_id: userIdFromUrl,
+        status: '未処理'
+      }));
+
+      const { data, error } = await supabase.from('tasks').insert(toInsert).select();
+      if (!error && data) {
+        setTasks(prev => [...(data as Task[]), ...prev]);
+        setNewTaskValue('');
+      }
+    } catch (err) {
+      console.error('Failed to add task:', err);
+      // Fallback: add as IDEA if analysis fails
+      const { data, error } = await supabase.from('tasks').insert([{
+        title: newTaskValue.trim(),
+        user_id: userIdFromUrl,
+        priority: 'IDEA',
+        status: '未処理',
+        category: '手動入力'
+      }]).select();
+      if (!error && data) {
+        setTasks(prev => [...(data as Task[]), ...prev]);
+        setNewTaskValue('');
+      }
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -195,12 +238,32 @@ function DashboardContent() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px] relative overflow-hidden">
-      <header className="max-w-[2200px] w-full mx-auto flex justify-between items-center mb-1 px-1 flex-shrink-0 h-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
-            タスク自動整理 ver{version}
+      <header className="max-w-[2200px] w-full mx-auto flex gap-3 items-center mb-1 px-1 flex-shrink-0 h-6">
+        <div className="flex items-center">
+          <h1 className="text-[10px] font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase whitespace-nowrap">
+            TM-OS {version}
           </h1>
         </div>
+
+        <div className="flex-1 flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 group focus-within:border-emerald-500/50 transition-colors">
+          <input
+            type="text"
+            placeholder="タスクを入力（AIで自動分類）..."
+            value={newTaskValue}
+            onChange={(e) => setNewTaskValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+            className="flex-1 bg-transparent outline-none text-[9px] text-white placeholder-gray-600 h-full"
+            disabled={isAdding}
+          />
+          <button
+            onClick={handleAddTask}
+            disabled={isAdding || !newTaskValue.trim()}
+            className={clsx("ml-1 transition-colors", newTaskValue.trim() ? "text-emerald-500" : "text-gray-700")}
+          >
+            {isAdding ? <RefreshCw size={10} className="animate-spin" /> : <span className="text-xs font-bold">+</span>}
+          </button>
+        </div>
+
         <div className="flex items-center gap-1">
           <button onClick={() => setShowHelp(true)} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400">
             <HelpCircle size={11} />
