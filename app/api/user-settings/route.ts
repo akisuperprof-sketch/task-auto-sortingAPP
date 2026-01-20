@@ -15,17 +15,27 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data || { dev_rank_name: "自由設定（名前変更可能）" });
+    return NextResponse.json(data || {
+        dev_rank_name: "自由設定（名前変更可能）",
+        idea_rank_name: "💡 アイデア（名前変更可能）"
+    });
 }
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId, devRankName } = await req.json();
+        const { userId, devRankName, ideaRankName } = await req.json();
         if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+
+        const updateData: any = {
+            user_id: userId,
+            updated_at: new Date().toISOString()
+        };
+        if (devRankName !== undefined) updateData.dev_rank_name = devRankName;
+        if (ideaRankName !== undefined) updateData.idea_rank_name = ideaRankName;
 
         const { data, error } = await supabase
             .from('user_settings')
-            .upsert({ user_id: userId, dev_rank_name: devRankName, updated_at: new Date().toISOString() })
+            .upsert(updateData)
             .select();
 
         if (error) throw error;

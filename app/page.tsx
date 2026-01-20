@@ -37,6 +37,7 @@ function DashboardContent() {
   const [newTaskValue, setNewTaskValue] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [devRankName, setDevRankName] = useState('自由設定（名前変更可能）');
+  const [ideaRankName, setIdeaRankName] = useState('💡 アイデア（名前変更可能）');
   const [isEditingDevName, setIsEditingDevName] = useState(false);
   const [justAddedIds, setJustAddedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +62,8 @@ function DashboardContent() {
 
     const savedDevName = localStorage.getItem('dev_rank_name');
     if (savedDevName) setDevRankName(savedDevName);
+    const savedIdeaName = localStorage.getItem('idea_rank_name');
+    if (savedIdeaName) setIdeaRankName(savedIdeaName);
 
     if (userIdFromUrl) {
       logAccess(userIdFromUrl, window.location.pathname);
@@ -91,6 +94,10 @@ function DashboardContent() {
         setDevRankName(data.dev_rank_name);
         localStorage.setItem('dev_rank_name', data.dev_rank_name);
       }
+      if (data.idea_rank_name) {
+        setIdeaRankName(data.idea_rank_name);
+        localStorage.setItem('idea_rank_name', data.idea_rank_name);
+      }
     } catch (err) {
       console.error("Failed to load settings:", err);
     }
@@ -102,14 +109,21 @@ function DashboardContent() {
     setIsEditingDevName(false);
 
     if (userIdFromUrl) {
-      try {
-        await fetch('/api/user-settings', {
-          method: 'POST',
-          body: JSON.stringify({ userId: userIdFromUrl, devRankName: newName }),
-        });
-      } catch (err) {
-        console.error("Failed to save settings:", err);
-      }
+      fetch('/api/user-settings', {
+        method: 'POST',
+        body: JSON.stringify({ userId: userIdFromUrl, devRankName: newName }),
+      }).catch(console.error);
+    }
+  };
+
+  const saveIdeaName = async (newName: string) => {
+    setIdeaRankName(newName);
+    localStorage.setItem('idea_rank_name', newName);
+    if (userIdFromUrl) {
+      fetch('/api/user-settings', {
+        method: 'POST',
+        body: JSON.stringify({ userId: userIdFromUrl, ideaRankName: newName }),
+      }).catch(console.error);
     }
   };
 
@@ -406,7 +420,7 @@ function DashboardContent() {
             <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
             <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
             <DroppableColumn id="DEV" title={devRankName} color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveDevName} justAddedIds={justAddedIds} />
-            <DroppableColumn id="IDEA" title="💡 アイデア" color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="IDEA" title={ideaRankName} color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveIdeaName} justAddedIds={justAddedIds} />
           </main>
 
           <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
