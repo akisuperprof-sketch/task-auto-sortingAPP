@@ -345,6 +345,8 @@ function generateFlexMessage(tasks: Task[]) {
         };
     });
 
+    const dashboardUrl = "https://task-auto-sorting-app.vercel.app";
+
     return {
         type: "flex",
         altText: "タスク一覧",
@@ -356,38 +358,52 @@ function generateFlexMessage(tasks: Task[]) {
                 contents: [
                     {
                         type: "text",
-                        text: "タスク一覧",
+                        text: "📋 タスク一覧 (ダッシュボード)",
                         weight: "bold",
-                        size: "xl",
+                        size: "md",
                         color: "#1DB446"
                     }
-                ]
+                ],
+                action: {
+                    type: "uri",
+                    label: "Dashboard",
+                    uri: dashboardUrl
+                }
             },
             body: {
                 type: "box",
                 layout: "vertical",
                 contents: contents.length > 0 ? contents : [
-                    { type: "text", text: "未処理のタスクはありません", color: "#aaaaaa", align: "center" }
-                ]
+                    { type: "text", text: "未処理のタスクはありません", color: "#aaaaaa", align: "center", size: "sm" }
+                ],
+                action: {
+                    type: "uri",
+                    label: "Dashboard",
+                    uri: dashboardUrl
+                }
             },
             footer: {
                 type: "box",
                 layout: "vertical",
+                spacing: "sm",
                 contents: [
                     {
-                        type: "text",
-                        text: "例: '1 完了' で完了に移動",
-                        size: "xs",
-                        color: "#aaaaaa",
-                        align: "center"
+                        type: "button",
+                        action: {
+                            type: "uri",
+                            label: "ダッシュボードを開く",
+                            uri: dashboardUrl
+                        },
+                        style: "primary",
+                        color: "#1DB446",
+                        height: "sm"
                     },
                     {
                         type: "text",
-                        text: "例: '1 削除' で完全に消去",
-                        size: "xs",
+                        text: "例: '1 完了' / '1 削除' / '1 は 〇〇 に修正'",
+                        size: "xxs",
                         color: "#aaaaaa",
-                        align: "center",
-                        margin: "xs"
+                        align: "center"
                     }
                 ]
             }
