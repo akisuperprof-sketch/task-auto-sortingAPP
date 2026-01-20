@@ -50,11 +50,14 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleMessage(userId: string, replyToken: string, text: string) {
-    const trimmedText = text.trim();
+    // Normalize: Full-width numbers/spaces to half-width
+    const normalizedText = text.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+        .replace(/　/g, " ")
+        .trim();
 
     // 1. Check for Status Update Pattern: "1 完了", "2 進行中"
     const statusRegex = /^(\d+)\s*(完了|進行中|保留|静観|戻す)$/;
-    const statusMatch = trimmedText.match(statusRegex);
+    const statusMatch = normalizedText.match(statusRegex);
 
     if (statusMatch) {
         const displayIndex = parseInt(statusMatch[1], 10);
@@ -62,7 +65,7 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         await handleStatusUpdate(userId, replyToken, displayIndex, newStatus);
     } else {
         // 2. Default: New Task Analysis
-        await handleNewTask(userId, replyToken, trimmedText);
+        await handleNewTask(userId, replyToken, text.trim());
     }
 }
 
