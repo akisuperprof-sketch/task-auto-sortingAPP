@@ -55,7 +55,18 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         .replace(/　/g, " ")
         .trim();
 
-    // 1. Check for Status Update or Delete Pattern: "1 完了", "1 削除"
+    // 1. Check for Modification Pattern: "1 は 打ち合わせ に修正"
+    const editRegex = /^(\d+)\s*は\s*(.+)\s*に修正$/;
+    const editMatch = normalizedText.match(editRegex);
+
+    if (editMatch) {
+        const displayIndex = parseInt(editMatch[1], 10);
+        const newTitle = editMatch[2].trim();
+        await handleTaskUpdateTitle(userId, replyToken, displayIndex, newTitle);
+        return;
+    }
+
+    // 2. Check for Status Update or Delete Pattern: "1 完了", "1 削除"
     const commandRegex = /^(\d+)\s*(完了|削除|進行中|保留|静観|戻す)$/;
     const commandMatch = normalizedText.match(commandRegex);
 
@@ -69,7 +80,7 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
             await handleStatusUpdate(userId, replyToken, displayIndex, command as Status);
         }
     } else {
-        // 2. Default: New Task Analysis
+        // 3. Default: New Task Analysis
         await handleNewTask(userId, replyToken, text.trim());
     }
 }
@@ -157,6 +168,45 @@ async function handleTaskDelete(userId: string, replyToken: string, displayIndex
     });
 }
 
+async function handleTaskUpdateTitle(userId: string, replyToken: string, displayIndex: number, newTitle: string) {
+    const tasks = await fetchActiveTasks(userId);
+
+    if (displayIndex < 1 || displayIndex > tasks.length) {
+        await client.replyMessage({
+            replyToken,
+            messages: [{ type: "text", text: `エラー: タスク ${displayIndex} 番は見つかりませんでした。` }],
+        });
+        return;
+    }
+
+    const targetTask = tasks[displayIndex - 1];
+
+    const { error } = await supabase
+        .from('tasks')
+        .update({ title: newTitle })
+        .eq('id', targetTask.id);
+
+    if (error) {
+        console.error("Supabase update error:", error);
+        await client.replyMessage({
+            replyToken,
+            messages: [{ type: "text", text: "修正に失敗しました。" }],
+        });
+        return;
+    }
+
+    const updatedTasks = await fetchActiveTasks(userId);
+    const flexMessage = generateFlexMessage(updatedTasks);
+
+    await client.replyMessage({
+        replyToken,
+        messages: [
+            { type: "text", text: `タスク「${targetTask.title}」を「${newTitle}」に修正しました。` },
+            flexMessage
+        ],
+    });
+}
+
 async function handleNewTask(userId: string, replyToken: string, text: string) {
     // 1. Analyze with Gemini
     const prompt = `Analyze the text: "${text}". 
@@ -172,17 +222,15 @@ async function handleNewTask(userId: string, replyToken: string, text: string) {
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
-        // Clean markdown code blocks if present
-        // Robust JSON extraction
         const match = responseText.match(/\[[\s\S]*\]/);
         if (!match) {
-            throw new Error("No JSON array found in AI response");
+            throw new Error(`AI response did not contain JSON: ${responseText}`);
         }
         const cleanJson = match[0];
         const parsedTasks = JSON.parse(cleanJson);
 
         if (!Array.isArray(parsedTasks)) {
-            throw new Error("Invalid format from AI");
+            throw new Error("Parsed as non-array");
         }
 
         // 2. Insert into Supabase
@@ -199,28 +247,28 @@ async function handleNewTask(userId: string, replyToken: string, text: string) {
             .insert(dbTasks);
 
         if (error) {
-            console.error("Supabase insert error:", error);
-            await client.replyMessage({
-                replyToken,
-                messages: [{ type: "text", text: "Failed to save tasks." }],
-            });
-            return;
+            throw error;
         }
 
-        // 3. Reply with Flex Message
+        // 3. Reply with Confirmation and Flex Message
         const tasks = await fetchActiveTasks(userId);
         const flexMessage = generateFlexMessage(tasks);
 
+        const addedTitles = dbTasks.map(t => `・${t.title} [${t.priority}]`).join("\n");
+
         await client.replyMessage({
             replyToken,
-            messages: [flexMessage],
+            messages: [
+                { type: "text", text: `以下のタスクを登録しました：\n${addedTitles}` },
+                flexMessage
+            ],
         });
 
     } catch (err) {
         console.error("AI/Parsing Error:", err);
         await client.replyMessage({
             replyToken,
-            messages: [{ type: "text", text: "すみません、タスクの内容が理解できませんでした。" }],
+            messages: [{ type: "text", text: `「${text}」が理解できませんでした。` }],
         });
     }
 }

@@ -24,6 +24,8 @@ import { CSS } from '@dnd-kit/utilities';
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -58,6 +60,13 @@ export default function Dashboard() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: priority as any } : t));
   };
 
+  const updateTitle = async (id: string, title: string) => {
+    if (!title.trim()) return;
+    await supabase.from('tasks').update({ title: title.trim() }).eq('id', id);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, title: title.trim() } : t));
+    setEditingId(null);
+  };
+
   const deleteTask = async (id: string) => {
     if (confirm('Delete?')) {
       await supabase.from('tasks').delete().eq('id', id);
@@ -74,10 +83,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px]">
       <header className="max-w-[1900px] mx-auto flex justify-between items-center mb-1 px-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
+          <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase text-center">
             TM-OS
           </h1>
-          <span className="text-[7px] text-gray-700 font-mono px-1 border border-white/5 rounded">v2.1.0</span>
+          <span className="text-[7px] text-gray-700 font-mono px-1 border border-white/5 rounded">v2.2.0</span>
         </div>
 
         <button
@@ -114,10 +123,10 @@ export default function Dashboard() {
       >
         <main className="max-w-[2000px] mx-auto grid grid-cols-4 gap-1 h-[calc(100vh-30px)]">
           {[
-            { id: 'S', title: 'S-URGENT', color: 'text-red-500', items: sTasks },
-            { id: 'A', title: 'A-HIGH', color: 'text-amber-500', items: aTasks },
-            { id: 'B', title: 'B/C-BACKLOG', color: 'text-emerald-500', items: bcTasks },
-            { id: '完了', title: 'COMPLETED', color: 'text-gray-600', items: completedTasks }
+            { id: 'S', title: 'S', color: 'text-red-500', items: sTasks },
+            { id: 'A', title: 'A', color: 'text-amber-500', items: aTasks },
+            { id: 'B', title: 'B/C', color: 'text-emerald-500', items: bcTasks },
+            { id: '完了', title: 'Done', color: 'text-gray-600', items: completedTasks }
           ].map(col => (
             <section key={col.id} id={col.id} className="flex flex-col bg-white/[0.01] border border-white/[0.03] rounded-sm overflow-hidden">
               <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
@@ -128,7 +137,18 @@ export default function Dashboard() {
               <SortableContext items={col.items.map(t => t.id)} strategy={verticalListSortingStrategy}>
                 <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide">
                   {col.items.map(task => (
-                    <TaskItemCompact key={task.id} task={task} onDone={() => updateStatus(task.id, '完了')} onDelete={() => deleteTask(task.id)} />
+                    <TaskItemCompact
+                      key={task.id}
+                      task={task}
+                      isEditing={editingId === task.id}
+                      editValue={editValue}
+                      onStartEdit={() => { setEditingId(task.id); setEditValue(task.title); }}
+                      onEditChange={setEditValue}
+                      onSaveEdit={() => updateTitle(task.id, editValue)}
+                      onCancelEdit={() => setEditingId(null)}
+                      onDone={() => updateStatus(task.id, '完了')}
+                      onDelete={() => deleteTask(task.id)}
+                    />
                   ))}
                 </div>
               </SortableContext>
@@ -140,31 +160,52 @@ export default function Dashboard() {
   );
 }
 
-function TaskItemCompact({ task, onDone, onDelete }: { task: Task, onDone: () => void, onDelete: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+function TaskItemCompact({
+  task, isEditing, editValue, onStartEdit, onEditChange, onSaveEdit, onCancelEdit, onDone, onDelete
+}: {
+  task: Task, isEditing: boolean, editValue: string, onStartEdit: () => void, onEditChange: (v: string) => void, onSaveEdit: () => void, onCancelEdit: () => void, onDone: () => void, onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: isEditing });
   const isCompleted = task.status === '完了';
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}
-      {...attributes}
-      {...listeners}
       className={clsx(
         "group relative flex items-center justify-between gap-1 px-1 py-0.5 rounded-[1px] transition-colors border border-transparent",
-        isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/[0.04]"
+        isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/[0.04]",
+        isEditing && "bg-white/[0.08] border-white/[0.1] z-10"
       )}
     >
-      <div className="flex items-center gap-1 min-w-0 flex-1">
-        <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px]">{task.category || '---'}</span>
-        <h3 className={clsx("truncate font-medium leading-[1.1] tracking-tighter text-[10px]", isCompleted ? "line-through text-gray-700" : "text-gray-300")}>
-          {task.title}
-        </h3>
+      <div className="flex items-center gap-1 min-w-0 flex-1 h-full" {...attributes} {...listeners}>
+        <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px] select-none">{task.category || '---'}</span>
+
+        {isEditing ? (
+          <input
+            autoFocus
+            className="flex-1 bg-transparent text-white outline-none font-medium leading-[1.1] tracking-tighter text-[10px] w-full"
+            value={editValue}
+            onChange={(e) => onEditChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSaveEdit();
+              if (e.key === 'Escape') onCancelEdit();
+            }}
+            onBlur={onSaveEdit}
+          />
+        ) : (
+          <h3
+            onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
+            className={clsx("truncate font-medium leading-[1.1] tracking-tighter text-[10px] flex-1 cursor-text", isCompleted ? "line-through text-gray-700" : "text-gray-300")}
+          >
+            {task.title}
+          </h3>
+        )}
       </div>
 
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!isCompleted && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/40 hover:text-emerald-400 p-0.5"><CheckCircle2 size={8} /></button>}
-        <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/20 hover:text-red-400 p-0.5"><Trash2 size={8} /></button>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+        {!isCompleted && !isEditing && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/40 hover:text-emerald-400 p-0.5"><CheckCircle2 size={8} /></button>}
+        {!isEditing && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/20 hover:text-red-400 p-0.5"><Trash2 size={8} /></button>}
       </div>
     </div>
   );
