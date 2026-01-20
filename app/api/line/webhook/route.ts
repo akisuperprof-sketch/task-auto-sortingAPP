@@ -129,7 +129,7 @@ async function handleTaskUpdateStatus(userId: string, replyToken: string, displa
 
     // 3. Reply with success and updated list
     const updatedTasks = await fetchActiveTasks(userId);
-    const flexMessage = generateFlexMessage(updatedTasks);
+    const flexMessage = generateFlexMessage(userId, updatedTasks);
 
     const message = newStatus === '削除済み'
         ? `タスク「${targetTask.title}」を削除しました。`
@@ -172,7 +172,7 @@ async function handlePriorityUpdate(userId: string, replyToken: string, displayI
     }
 
     const updatedTasks = await fetchActiveTasks(userId);
-    const flexMessage = generateFlexMessage(updatedTasks);
+    const flexMessage = generateFlexMessage(userId, updatedTasks);
 
     await client.replyMessage({
         replyToken,
@@ -211,7 +211,7 @@ async function handleTaskUpdateTitle(userId: string, replyToken: string, display
     }
 
     const updatedTasks = await fetchActiveTasks(userId);
-    const flexMessage = generateFlexMessage(updatedTasks);
+    const flexMessage = generateFlexMessage(userId, updatedTasks);
 
     await client.replyMessage({
         replyToken,
@@ -270,7 +270,7 @@ async function handleNewTask(userId: string, replyToken: string, text: string) {
 
         // 3. Reply with Confirmation and Flex Message
         const tasks = await fetchActiveTasks(userId);
-        const flexMessage = generateFlexMessage(tasks);
+        const flexMessage = generateFlexMessage(userId, tasks);
 
         const addedTitles = dbTasks.map(t => `・${t.title} [${t.priority}]`).join("\n");
 
@@ -316,7 +316,7 @@ async function fetchActiveTasks(userId: string): Promise<Task[]> {
     });
 }
 
-function generateFlexMessage(tasks: Task[]) {
+function generateFlexMessage(userId: string, tasks: Task[]) {
     // Colors
     const colors: Record<Priority, string> = {
         'S': '#FF3333', // Red
@@ -330,9 +330,8 @@ function generateFlexMessage(tasks: Task[]) {
         // Status icon/text
         const statusIcon = task.status === '進行中' ? '🏃' : ''; // '未処理' has no icon maybe, or just listed.
         // Example: "1. 📄 事業計画書 (🔥 S)"
-        // Let's mimic the user example roughly
         const itemText = `${index + 1}. ${statusIcon} ${task.title}`;
-        const metaText = `(${task.priority})`; // Or fire icon if S
+        const metaText = `(${task.priority})`;
 
         return {
             type: "box",
@@ -360,7 +359,7 @@ function generateFlexMessage(tasks: Task[]) {
         };
     });
 
-    const dashboardUrl = "https://task-auto-sorting-app.vercel.app";
+    const dashboardUrl = `https://task-auto-sorting-app.vercel.app?u=${userId}`;
 
     return {
         type: "flex",
