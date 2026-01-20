@@ -2,24 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
-import { Task, Priority } from '@/types';
+import { Task } from '@/types';
 import { CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
-  DragOverlay,
-  defaultDropAnimationSideEffects,
-  DragStartEvent,
-  DragOverEvent,
-  DragEndEvent,
+  PointerSensor,
+  KeyboardSensor,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -30,17 +24,10 @@ import { CSS } from '@dnd-kit/utilities';
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const fetchTasks = async () => {
@@ -72,175 +59,113 @@ export default function Dashboard() {
   };
 
   const deleteTask = async (id: string) => {
-    if (confirm('Delete permanently?')) {
+    if (confirm('Delete?')) {
       await supabase.from('tasks').delete().eq('id', id);
       setTasks(prev => prev.filter(t => t.id !== id));
     }
   };
 
-  const onDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const onDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeTask = tasks.find(t => t.id === active.id);
-    const overId = over.id as string;
-
-    // If dropped over a column header or an area representing a priority
-    if (['S', 'A', 'B', 'C', '完了'].includes(overId)) {
-      if (activeTask) {
-        if (overId === '完了') {
-          await updateStatus(activeTask.id, '完了');
-        } else {
-          // Move back from completed if necessary
-          if (activeTask.status === '完了') {
-            await supabase.from('tasks').update({ status: '未処理', priority: overId }).eq('id', activeTask.id);
-            setTasks(prev => prev.map(t => t.id === activeTask.id ? { ...t, status: '未処理', priority: overId as any } : t));
-          } else {
-            await updatePriority(activeTask.id, overId);
-          }
-        }
-      }
-    }
-
-    setActiveId(null);
-  };
-
-  // Columns definition
-  const columns: { id: string; title: string; color: string; items: Task[] }[] = [
-    { id: 'S', title: 'S / Urgent', color: 'text-red-500', items: tasks.filter(t => t.priority === 'S' && t.status !== '完了') },
-    { id: 'A', title: 'A / High', color: 'text-amber-500', items: tasks.filter(t => t.priority === 'A' && t.status !== '完了') },
-    { id: 'B', title: 'B-C / Backlog', color: 'text-emerald-500', items: tasks.filter(t => ['B', 'C'].includes(t.priority) && t.status !== '完了') },
-    { id: '完了', title: 'Completed', color: 'text-gray-500', items: tasks.filter(t => t.status === '完了') },
-  ];
-
-  const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
+  const sTasks = tasks.filter(t => t.priority === 'S' && t.status !== '完了');
+  const aTasks = tasks.filter(t => t.priority === 'A' && t.status !== '完了');
+  const bcTasks = tasks.filter(t => ['B', 'C'].includes(t.priority) && t.status !== '完了');
+  const completedTasks = tasks.filter(t => t.status === '完了');
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-gray-200 p-2 md:p-3 font-sans antialiased text-[12px] selection:bg-cyan-500/30">
-      <header className="max-w-[1800px] mx-auto flex justify-between items-center mb-3 px-1">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-lg font-black tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
-            Task Monitor
+    <div className="min-h-screen bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px]">
+      <header className="max-w-[1900px] mx-auto flex justify-between items-center mb-1 px-1">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
+            TM-OS
           </h1>
-          <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[7px] text-gray-700 font-mono px-1 border border-white/5 rounded">v2.1.0</span>
         </div>
 
         <button
           onClick={fetchTasks}
-          className="p-1.5 bg-white/5 hover:bg-white/10 rounded border border-white/5 transition-all active:scale-95"
+          className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400"
           disabled={loading}
         >
-          <RefreshCw size={12} className={clsx("text-gray-500", loading && "animate-spin")} />
+          <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
         </button>
       </header>
 
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
+        onDragEnd={(event) => {
+          const { active, over } = event;
+          if (!over) return;
+          const activeTask = tasks.find(t => t.id === active.id);
+          const overId = over.id as string;
+          if (!activeTask) return;
+
+          if (overId === '完了') {
+            updateStatus(activeTask.id, '完了');
+          } else if (['S', 'A', 'B', 'C'].includes(overId)) {
+            if (activeTask.status === '完了') {
+              supabase.from('tasks').update({ status: '未処理', priority: overId }).eq('id', activeTask.id).then(() => {
+                setTasks(prev => prev.map(t => t.id === activeTask.id ? { ...t, status: '未処理', priority: overId as any } : t));
+              });
+            } else {
+              updatePriority(activeTask.id, overId);
+            }
+          }
+        }}
       >
-        <main className="max-w-[1800px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-          {columns.map(col => (
-            <div key={col.id} className="flex flex-col min-h-[200px]">
-              <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-white/5">
-                <h2 className={clsx("text-[10px] font-bold uppercase tracking-widest", col.color)}>{col.title}</h2>
-                <span className="text-[9px] font-mono text-gray-600 bg-white/5 px-1.5 rounded-full">{col.items.length}</span>
+        <main className="max-w-[2000px] mx-auto grid grid-cols-4 gap-1 h-[calc(100vh-30px)]">
+          {[
+            { id: 'S', title: 'S-URGENT', color: 'text-red-500', items: sTasks },
+            { id: 'A', title: 'A-HIGH', color: 'text-amber-500', items: aTasks },
+            { id: 'B', title: 'B/C-BACKLOG', color: 'text-emerald-500', items: bcTasks },
+            { id: '完了', title: 'COMPLETED', color: 'text-gray-600', items: completedTasks }
+          ].map(col => (
+            <section key={col.id} id={col.id} className="flex flex-col bg-white/[0.01] border border-white/[0.03] rounded-sm overflow-hidden">
+              <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
+                <h2 className={clsx("text-[8px] font-black tracking-tighter", col.color)}>{col.title}</h2>
+                <span className="text-[7px] font-mono text-gray-700">{col.items.length}</span>
               </div>
 
               <SortableContext items={col.items.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex-1 space-y-1 p-1 rounded-lg bg-white/[0.01] border border-transparent hover:border-white/[0.03] transition-colors min-h-[100px]">
+                <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide">
                   {col.items.map(task => (
-                    <SortableTaskItem
-                      key={task.id}
-                      task={task}
-                      onDone={() => updateStatus(task.id, '完了')}
-                      onDelete={() => deleteTask(task.id)}
-                    />
+                    <TaskItemCompact key={task.id} task={task} onDone={() => updateStatus(task.id, '完了')} onDelete={() => deleteTask(task.id)} />
                   ))}
-                  {col.items.length === 0 && (
-                    <div className="h-full flex items-center justify-center py-8 opacity-20 pointer-events-none">
-                      <span className="text-[10px] uppercase font-bold tracking-tighter italic">Empty</span>
-                    </div>
-                  )}
                 </div>
               </SortableContext>
-            </div>
+            </section>
           ))}
         </main>
-
-        <DragOverlay dropAnimation={{
-          sideEffects: defaultDropAnimationSideEffects({
-            styles: {
-              active: {
-                opacity: '0.4',
-              },
-            },
-          }),
-        }}>
-          {activeTask ? (
-            <div className="p-2 rounded border bg-[#1A1D23] border-cyan-500/50 shadow-2xl scale-105 pointer-events-none">
-              <span className="text-[8px] text-gray-500 font-bold uppercase mb-1 block">{activeTask.category}</span>
-              <p className="text-[11px] font-medium text-white">{activeTask.title}</p>
-            </div>
-          ) : null}
-        </DragOverlay>
       </DndContext>
     </div>
   );
 }
 
-function SortableTaskItem({ task, onDone, onDelete }: {
-  task: Task, onDone: () => void, onDelete: () => void
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: task.id });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-    opacity: isDragging ? 0.3 : 1,
-  };
-
+function TaskItemCompact({ task, onDone, onDelete }: { task: Task, onDone: () => void, onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const isCompleted = task.status === '完了';
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className={clsx(
-        "group relative flex flex-col p-2 rounded border bg-[#121418] border-white/[0.05] hover:border-white/10 transition-all cursor-grab active:cursor-grabbing",
-        isCompleted && "bg-transparent opacity-40"
-      )}
+      style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}
       {...attributes}
       {...listeners}
+      className={clsx(
+        "group relative flex items-center justify-between gap-1 px-1 py-0.5 rounded-[1px] transition-colors border border-transparent",
+        isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/[0.04]"
+      )}
     >
-      <div className="flex justify-between items-center mb-0.5 pointer-events-none">
-        <span className="text-[8px] text-gray-600 font-bold uppercase">{task.category || 'General'}</span>
-        <div className="flex gap-2 pointer-events-auto">
-          {!isCompleted && (
-            <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/50 hover:text-emerald-400"><CheckCircle2 size={10} /></button>
-          )}
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/40 hover:text-red-400"><Trash2 size={10} /></button>
-        </div>
+      <div className="flex items-center gap-1 min-w-0 flex-1">
+        <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px]">{task.category || '---'}</span>
+        <h3 className={clsx("truncate font-medium leading-[1.1] tracking-tighter text-[10px]", isCompleted ? "line-through text-gray-700" : "text-gray-300")}>
+          {task.title}
+        </h3>
       </div>
 
-      <p className={clsx(
-        "font-medium leading-tight select-none",
-        isCompleted ? "text-gray-600 line-through" : "text-gray-300"
-      )}>
-        {task.title}
-      </p>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!isCompleted && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/40 hover:text-emerald-400 p-0.5"><CheckCircle2 size={8} /></button>}
+        <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/20 hover:text-red-400 p-0.5"><Trash2 size={8} /></button>
+      </div>
     </div>
   );
 }
