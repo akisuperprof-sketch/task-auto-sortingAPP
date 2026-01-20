@@ -214,27 +214,11 @@ function DashboardContent() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
-          {/* Mobile Scroll Indicators */}
-          <div className="md:hidden absolute top-1/2 left-0 z-20 -translate-y-1/2 pointer-events-none opacity-40 animate-pulse">
-            <span className="text-white text-lg ml-1">◀</span>
-          </div>
-          <div className="md:hidden absolute top-1/2 right-0 z-20 -translate-y-1/2 pointer-events-none opacity-40 animate-pulse">
-            <span className="text-white text-lg mr-1">▶</span>
-          </div>
-
-          <main className="flex-1 flex md:grid md:grid-cols-4 gap-1 h-full overflow-x-auto md:overflow-x-hidden snap-x snap-mandatory scrollbar-hide">
-            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
-              <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            </div>
-            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
-              <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            </div>
-            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
-              <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            </div>
-            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
-              <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            </div>
+          <main className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-1 h-full overflow-hidden">
+            <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
           </main>
 
           <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
@@ -262,7 +246,7 @@ function DashboardContent() {
 function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <section ref={setNodeRef} className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
+    <section ref={setNodeRef} className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
       <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
         <h2 className={clsx("text-[8px] font-black tracking-tighter", color)}>{title}</h2>
         <span className="text-[7px] font-mono text-gray-700">{tasks.length}</span>
@@ -331,7 +315,7 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
         {isEditing ? (
           <input autoFocus className="flex-1 bg-transparent text-white outline-none font-medium leading-[1.1] tracking-tighter text-[10px] w-full" value={editValue} onChange={(e) => onEditChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onSaveEdit(); if (e.key === 'Escape') onCancelEdit(); }} onBlur={onSaveEdit} />
         ) : (
-          <h3 onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className={clsx("truncate font-medium leading-[1.1] tracking-tighter text-[10px] flex-1 cursor-text", isCompleted ? "line-through text-gray-700" : "text-gray-300")}>{task.title}</h3>
+          <h3 onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className={clsx("line-clamp-2 overflow-hidden whitespace-normal font-medium leading-[1.1] tracking-tighter text-[9px] flex-1 cursor-text", isCompleted ? "line-through text-gray-700" : "text-gray-300")}>{task.title}</h3>
         )}
       </div>
       <div className="hidden md:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
