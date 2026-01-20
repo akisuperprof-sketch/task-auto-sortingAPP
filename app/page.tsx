@@ -43,7 +43,6 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) console.error('Error fetching tasks:', error);
@@ -110,7 +109,7 @@ export default function Dashboard() {
       return;
     }
 
-    // 2. Handle vertical reordering (same column or different column drop on another task)
+    // 2. Handle reordering
     const activeIndex = tasks.findIndex(t => t.id === activeId);
     const overIndex = tasks.findIndex(t => t.id === overId);
 
@@ -118,23 +117,20 @@ export default function Dashboard() {
       const activeTask = tasks[activeIndex];
       const overTask = tasks[overIndex];
 
-      // If dropped on a task in a different priority/status, update priority first
       if (activeTask.priority !== overTask.priority || activeTask.status !== overTask.status) {
-        supabase.from('tasks').update({
-          priority: overTask.priority,
-          status: overTask.status
-        }).eq('id', activeId).then(() => {
-          setTasks((items) => arrayMove(items, activeIndex, overIndex).map((t, idx) => ({ ...t, sort_order: idx })));
+        // Change category/status if moved over a task in another group
+        const newPriority = overTask.priority;
+        const newStatus = overTask.status;
+        supabase.from('tasks').update({ priority: newPriority, status: newStatus }).eq('id', activeId).then(() => {
+          setTasks((items) => {
+            const list = [...items];
+            list[activeIndex] = { ...activeTask, priority: newPriority as any, status: newStatus as any };
+            return arrayMove(list, activeIndex, overIndex);
+          });
         });
       } else {
-        // Same category, just reorder locally
-        setTasks((items) => {
-          const newItems = arrayMove(items, activeIndex, overIndex);
-          // Optional: persist new order to DB if you have a sort_order column
-          const updateData = newItems.map((item, idx) => ({ id: item.id, sort_order: idx }));
-          // Note: Full persistence logic involves batch updating supabase
-          return newItems;
-        });
+        // Just reorder in same group
+        setTasks((items) => arrayMove(items, activeIndex, overIndex));
       }
     }
   };
@@ -203,7 +199,7 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
         <span className="text-[7px] font-mono text-gray-700">{tasks.length}</span>
       </div>
       <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[50px]">
           {tasks.map((task: any) => (
             <TaskItemCompact
               key={task.id}

@@ -66,7 +66,18 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         return;
     }
 
-    // 2. Check for Status Update or Delete Pattern: "1 完了", "1 削除"
+    // 2. Check for Priority Change Pattern: "2 は S", "3 は B"
+    const priorityRegex = /^(\d+)\s*は\s*([SABC])\s*$/i;
+    const priorityMatch = normalizedText.match(priorityRegex);
+
+    if (priorityMatch) {
+        const displayIndex = parseInt(priorityMatch[1], 10);
+        const newPriority = priorityMatch[2].toUpperCase() as Priority;
+        await handlePriorityUpdate(userId, replyToken, displayIndex, newPriority);
+        return;
+    }
+
+    // 3. Check for Status Update or Delete Pattern: "1 完了", "1 削除"
     const commandRegex = /^(\d+)\s*(完了|削除|進行中|保留|静観|戻す)$/;
     const commandMatch = normalizedText.match(commandRegex);
 
@@ -75,19 +86,19 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         const command = commandMatch[2];
 
         if (command === '削除') {
-            await handleTaskDelete(userId, replyToken, displayIndex);
+            await handleTaskUpdateStatus(userId, replyToken, displayIndex, '削除済み');
         } else {
-            await handleStatusUpdate(userId, replyToken, displayIndex, command as Status);
+            await handleTaskUpdateStatus(userId, replyToken, displayIndex, command as Status);
         }
     } else {
-        // 3. Default: New Task Analysis
+        // 4. Default: New Task Analysis
         await handleNewTask(userId, replyToken, text.trim());
     }
 }
 
 // --- Logic Handlers ---
 
-async function handleStatusUpdate(userId: string, replyToken: string, displayIndex: number, newStatus: Status) {
+async function handleTaskUpdateStatus(userId: string, replyToken: string, displayIndex: number, newStatus: Status) {
     // 1. Fetch current active tasks
     const tasks = await fetchActiveTasks(userId);
 
@@ -99,7 +110,7 @@ async function handleStatusUpdate(userId: string, replyToken: string, displayInd
         return;
     }
 
-    const targetTask = tasks[displayIndex - 1]; // 1-based index
+    const targetTask = tasks[displayIndex - 1];
 
     // 2. Update Status
     const { error } = await supabase
@@ -117,19 +128,23 @@ async function handleStatusUpdate(userId: string, replyToken: string, displayInd
     }
 
     // 3. Reply with success and updated list
-    const updatedTasks = await fetchActiveTasks(userId); // Re-fetch to show new list state
+    const updatedTasks = await fetchActiveTasks(userId);
     const flexMessage = generateFlexMessage(updatedTasks);
+
+    const message = newStatus === '削除済み'
+        ? `タスク「${targetTask.title}」を削除しました。`
+        : `タスク「${targetTask.title}」を「${newStatus}」に変更しました。`;
 
     await client.replyMessage({
         replyToken,
         messages: [
-            { type: "text", text: `タスク「${targetTask.title}」を「${newStatus}」に変更しました。` },
+            { type: "text", text: message },
             flexMessage
         ],
     });
 }
 
-async function handleTaskDelete(userId: string, replyToken: string, displayIndex: number) {
+async function handlePriorityUpdate(userId: string, replyToken: string, displayIndex: number, newPriority: Priority) {
     const tasks = await fetchActiveTasks(userId);
 
     if (displayIndex < 1 || displayIndex > tasks.length) {
@@ -144,14 +159,14 @@ async function handleTaskDelete(userId: string, replyToken: string, displayIndex
 
     const { error } = await supabase
         .from('tasks')
-        .delete()
+        .update({ priority: newPriority })
         .eq('id', targetTask.id);
 
     if (error) {
-        console.error("Supabase delete error:", error);
+        console.error("Supabase update error:", error);
         await client.replyMessage({
             replyToken,
-            messages: [{ type: "text", text: "削除に失敗しました。" }],
+            messages: [{ type: "text", text: "優先度の変更に失敗しました。" }],
         });
         return;
     }
@@ -162,7 +177,7 @@ async function handleTaskDelete(userId: string, replyToken: string, displayIndex
     await client.replyMessage({
         replyToken,
         messages: [
-            { type: "text", text: `タスク「${targetTask.title}」を削除しました。` },
+            { type: "text", text: `タスク「${targetTask.title}」の優先度を「${newPriority}」に変更しました。` },
             flexMessage
         ],
     });
