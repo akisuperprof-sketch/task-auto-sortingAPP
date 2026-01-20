@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import { Task } from '@/types';
-import { CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Trash2, RefreshCw, HelpCircle } from 'lucide-react';
 import clsx from 'clsx';
 import {
   DndContext,
@@ -32,6 +32,7 @@ function DashboardContent() {
   const [showTrash, setShowTrash] = useState(false);
   const [showPending, setShowPending] = useState(false);
   const [showWatch, setShowWatch] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [version, setVersion] = useState('');
 
   const sensors = useSensors(
@@ -43,6 +44,13 @@ function DashboardContent() {
     const now = new Date();
     const formatted = `${now.getFullYear().toString().slice(2)}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     setVersion(formatted);
+
+    // Show help on first visit
+    const lastVersion = localStorage.getItem('help_shown_v1');
+    if (!lastVersion) {
+      setShowHelp(true);
+      localStorage.setItem('help_shown_v1', 'true');
+    }
   }, []);
 
   const fetchTasks = async () => {
@@ -189,9 +197,14 @@ function DashboardContent() {
             タスク自動整理 ver{version}
           </h1>
         </div>
-        <button onClick={fetchTasks} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400" disabled={loading}>
-          <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setShowHelp(true)} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400">
+            <HelpCircle size={11} />
+          </button>
+          <button onClick={fetchTasks} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400" disabled={loading}>
+            <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
       </header>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -232,6 +245,8 @@ function DashboardContent() {
           {showPending && <SideDrawer id="保留" title="PENDING" items={pendingTasks} onClose={() => setShowPending(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showWatch && <SideDrawer id="静観" title="WATCH" items={watchTasks} onClose={() => setShowWatch(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showTrash && <SideDrawer id="削除済み" title="TRASH" items={trashTasks} onClose={() => setShowTrash(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
+
+          {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         </div>
       </DndContext>
     </div>
@@ -315,6 +330,69 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
       <div className="hidden md:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
         {!isCompleted && !isEditing && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/40 hover:text-emerald-400 p-0.5"><CheckCircle2 size={8} /></button>}
         {!isEditing && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/20 hover:text-red-400 p-0.5"><Trash2 size={8} /></button>}
+      </div>
+    </div>
+  );
+}
+
+function HelpModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-[#0D0F13] border border-white/10 rounded-lg w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col">
+        <div className="sticky top-0 bg-[#0D0F13] border-b border-white/10 px-4 py-3 flex justify-between items-center">
+          <h2 className="text-xs font-black tracking-widest text-emerald-400 uppercase">TM-OS Manual</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-white text-lg">×</button>
+        </div>
+
+        <div className="p-4 space-y-6 text-[10px] leading-relaxed">
+          <section className="space-y-2">
+            <h3 className="text-[9px] font-bold text-white border-l-2 border-emerald-500 pl-2 uppercase">LINE での操作</h3>
+            <div className="space-y-3 pl-2">
+              <div>
+                <p className="text-gray-400 font-bold underline">1. タスクの登録</p>
+                <p className="text-gray-500 italic">「1/21 15時から会議を1時間」「牛乳を買う（至急）」など</p>
+                <p className="text-gray-600">AIが内容・日付・優先度を判別して自動登録します。</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-bold underline">2. タイトルの修正</p>
+                <p className="text-gray-500 italic">「1 を 〇〇会場に変更 に修正」</p>
+                <p className="text-gray-600">番号を指定して書き換えられます。（「は」でも可）</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-bold underline">3. ランク（優先度）変更</p>
+                <p className="text-gray-500 italic">「2 を S」「3 を A」</p>
+                <p className="text-gray-600">S, A, B, C のランクに即座に変更できます。</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-bold underline">4. ステータス変更</p>
+                <p className="text-gray-500 italic">「1 完了」「2 削除」「3 保留」「4 進行中」「5 戻す」</p>
+                <p className="text-gray-600">※削除したものはダッシュボードのゴミ箱から復元可能です。</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-[9px] font-bold text-white border-l-2 border-cyan-500 pl-2 uppercase">ダッシュボード（スマホ）での操作</h3>
+            <div className="space-y-3 pl-2">
+              <div>
+                <p className="text-gray-400 font-bold underline">1. 状態を変える（ドラッグ）</p>
+                <p className="text-gray-600">タスクを長押しして、下部のアイコンバーまで運んで指を離します。</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-bold underline">2. 優先度を変える</p>
+                <p className="text-gray-600">◀ ▶ ガイドに合わせて左右にスワイプして列を切り替え、別の列へタスクをドラッグします。</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-bold underline">3. 直接編集</p>
+                <p className="text-gray-600">タスクのタイトルを直接タップすると文字を書き換えられます。</p>
+              </div>
+            </div>
+          </section>
+
+          <button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md transition-colors mt-4">
+            了解しました
+          </button>
+        </div>
       </div>
     </div>
   );
