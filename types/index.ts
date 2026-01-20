@@ -1,0 +1,12 @@
+export type Priority = 'S' | 'A' | 'B' | 'C';
+export type Status = '未処理' | '進行中' | '完了' | '保留' | '静観' | '戻す';
+
+export interface Task {
+    id: string;
+    user_id: string;
+    title: string;
+    category: string;
+    priority: Priority;
+    status: Status;
+    created_at: string;
+}
