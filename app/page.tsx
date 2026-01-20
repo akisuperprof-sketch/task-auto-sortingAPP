@@ -33,6 +33,7 @@ function DashboardContent() {
   const [showPending, setShowPending] = useState(false);
   const [showWatch, setShowWatch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showDev, setShowDev] = useState(false);
   const [version, setVersion] = useState('');
 
   const sensors = useSensors(
@@ -111,6 +112,7 @@ function DashboardContent() {
   const trashTasks = tasks.filter(t => t.status === '削除済み');
   const pendingTasks = tasks.filter(t => t.status === '保留');
   const watchTasks = tasks.filter(t => t.status === '静観');
+  const devTasks = tasks.filter(t => t.status === '開発中');
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -125,6 +127,8 @@ function DashboardContent() {
       'done_zone': '完了',
       '完了': '完了',
       'progress_zone': '進行中',
+      'dev_zone': '開発中',
+      '開発中': '開発中',
       'trash_zone': '削除済み',
       '削除済み': '削除済み',
       'pending_zone': '保留',
@@ -234,14 +238,16 @@ function DashboardContent() {
           </main>
 
           <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
-            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={14} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
+            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={14} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); setShowDev(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
             <DropZoneStrip id="progress_zone" icon={<span className="text-[14px]">🏃</span>} active={false} onClick={() => { }} color="text-cyan-500" count={tasks.filter(t => t.status === '進行中').length} label="進行" />
-            <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
-            <DropZoneStrip id="watch_zone" icon={<span className="text-[14px]">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); }} color="text-blue-500" count={watchTasks.length} label="静観" />
-            <DropZoneStrip id="trash_zone" icon={<Trash2 size={14} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
+            <DropZoneStrip id="dev_zone" icon={<span className="text-[14px]">🛠️</span>} active={showDev} onClick={() => { setShowDev(!showDev); setShowDone(false); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-indigo-400" count={devTasks.length} label="開発" />
+            <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); setShowDev(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
+            <DropZoneStrip id="watch_zone" icon={<span className="text-[14px]">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); setShowDev(false); }} color="text-blue-500" count={watchTasks.length} label="静観" />
+            <DropZoneStrip id="trash_zone" icon={<Trash2 size={14} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); setShowDev(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
           </div>
 
           {showDone && <SideDrawer id="完了" title="DONE" items={doneTasks} onClose={() => setShowDone(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
+          {showDev && <SideDrawer id="開発中" title="DEV" items={devTasks} onClose={() => setShowDev(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showPending && <SideDrawer id="保留" title="PENDING" items={pendingTasks} onClose={() => setShowPending(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showWatch && <SideDrawer id="静観" title="WATCH" items={watchTasks} onClose={() => setShowWatch(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showTrash && <SideDrawer id="削除済み" title="TRASH" items={trashTasks} onClose={() => setShowTrash(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
@@ -316,11 +322,12 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: isEditing });
   const isCompleted = task.status === '完了';
   const isInProgress = task.status === '進行中';
+  const isDev = task.status === '開発中';
 
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-1 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10")}>
+    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-1 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isDev && "border-l-indigo-500/50 border-l-2 bg-indigo-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10")}>
       <div className="flex items-center gap-1 min-w-0 flex-1 h-full cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-        <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px] select-none">{isInProgress ? '🏃' : (task.category || '---')}</span>
+        <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px] select-none">{isInProgress ? '🏃' : (isDev ? '🛠️' : (task.category || '---'))}</span>
         {isEditing ? (
           <input autoFocus className="flex-1 bg-transparent text-white outline-none font-medium leading-[1.1] tracking-tighter text-[10px] w-full" value={editValue} onChange={(e) => onEditChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onSaveEdit(); if (e.key === 'Escape') onCancelEdit(); }} onBlur={onSaveEdit} />
         ) : (
@@ -367,8 +374,8 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               </div>
               <div>
                 <p className="text-gray-400 font-bold underline">4. ステータス変更</p>
-                <p className="text-gray-500 italic">「1 完了」「削除 2 3」「4 進行中」「5 戻す」</p>
-                <p className="text-gray-600">※「削除 2 3」のように複数を一括で操作することも可能です。</p>
+                <p className="text-gray-500 italic">「1 完了」「2 開発中」「削除 4 5」「6 進行中」</p>
+                <p className="text-gray-600">※「削除 4 5」のように複数を一括で操作することも可能です。</p>
               </div>
               <div className="bg-white/5 p-2 rounded-[1px] border border-white/5">
                 <p className="text-emerald-400 font-bold">💡 ヒント</p>

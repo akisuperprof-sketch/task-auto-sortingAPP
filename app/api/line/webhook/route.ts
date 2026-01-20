@@ -68,7 +68,7 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
             replyToken,
             messages: [{
                 type: "text",
-                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n自由に送るだけでAIが登録します。改行して一気に入れてもOKです。\n\n2. ランク変更\n・「1 を S」: 1番をSランクへ\n\n3. 内容の修正\n・「1 を 〇〇 に修正」: タイトルを変更\n\n4. 状態の変更\n・「1 完了」「2 進行中」「3 削除」「4 保留」「2 は 削除」など。\n・「削除 2 3」のように複数を一度に消すことも可能です。\n\n「一覧」でリスト表示、「ダッシュボード」で管理画面リンクを表示します。"
+                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n自由に送るだけでAIが登録します。改行して一気に入れてもOKです。\n\n2. ランク変更\n・「1 を S」: 1番をSランクへ\n\n3. 内容の修正\n・「1 を 〇〇 に修正」: タイトルを変更\n\n4. 状態の変更\n・「1 完了」「2 進行中」「3 開発中」「4 削除」「2 は 削除」など。\n・「削除 2 3」のように複数を一度に消すことも可能です。\n\n「一覧」でリスト表示、「ダッシュボード」で管理画面リンクを表示します。"
             }],
         });
         return;
@@ -111,8 +111,8 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
     // Regex Definitions
     const editRegex = /^(\d+)\s*[はを]\s*(.+)\s*に修正$/;
     const priorityRegex = /^(\d+)\s*[はを]?\s*([SABC])\s*$/i;
-    const statusEndRegex = /^(\d+)\s*[はを]?\s*(完了|削除|進行中|保留|静観|戻す)$/;
-    const commandStartRegex = /^(完了|削除|進行中|保留|静観|戻す)\s*([\d\s]+)$/;
+    const statusEndRegex = /^(\d+)\s*[はを]?\s*(完了|削除|進行中|開発中|保留|静観|戻す)$/;
+    const commandStartRegex = /^(完了|削除|進行中|開発中|保留|静観|戻す)\s*([\d\s]+)$/;
 
     const tasks = await fetchActiveTasks(userId);
 
