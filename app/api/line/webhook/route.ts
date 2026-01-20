@@ -66,8 +66,50 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         return;
     }
 
-    // 1. Check for Modification Pattern: "1 は 打ち合わせ に修正"
-    const editRegex = /^(\d+)\s*は\s*(.+)\s*に修正$/;
+    // 0.1 Check for "使い方" command
+    if (normalizedText === "使い方" || normalizedText === "ヘルプ" || normalizedText.toLowerCase() === "help") {
+        await client.replyMessage({
+            replyToken,
+            messages: [{
+                type: "text",
+                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n「明日の10時から会議」「牛乳を買う」など、自由に送るだけでAIが優先度を判定して登録します。\n\n2. ステータス変更\n・「1 完了」: 1番を完了へ\n・「2 進行中」: 2番を進行中へ\n・「3 削除」: 3番をゴミ箱へ\n\n3. 詳細操作\n・「2 は S」: 優先度をSに変更\n・「1 は 〇〇 に修正」: タイトルを変更\n\n「一覧」で現在のタスクを確認、「ダッシュボード」で管理画面のリンクを表示します。"
+            }],
+        });
+        return;
+    }
+
+    // 0.2 Check for "ダッシュボード" command
+    if (normalizedText === "ダッシュボード" || normalizedText === "管理画面" || normalizedText.toLowerCase() === "dashboard") {
+        const dashboardUrl = `https://task-auto-sorting-app.vercel.app?u=${userId}`;
+        await client.replyMessage({
+            replyToken,
+            messages: [{
+                type: "flex",
+                altText: "ダッシュボードを開く",
+                contents: {
+                    type: "bubble",
+                    body: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                            { type: "text", text: "あなた専用のダッシュボード", weight: "bold", size: "sm" },
+                            {
+                                type: "button",
+                                action: { type: "uri", label: "管理画面を開く", uri: dashboardUrl },
+                                style: "primary",
+                                color: "#1DB446",
+                                margin: "md"
+                            }
+                        ]
+                    }
+                }
+            } as any],
+        });
+        return;
+    }
+
+    // 1. Check for Modification Pattern: "1 は 打ち合わせ に修正" または "1 を 打ち合わせ に修正"
+    const editRegex = /^(\d+)\s*[はを]\s*(.+)\s*に修正$/;
     const editMatch = normalizedText.match(editRegex);
 
     if (editMatch) {
@@ -77,8 +119,8 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         return;
     }
 
-    // 2. Check for Priority Change Pattern: "2 は S", "3 は B"
-    const priorityRegex = /^(\d+)\s*は\s*([SABC])\s*$/i;
+    // 2. Check for Priority Change Pattern: "2 は S", "3 を A"
+    const priorityRegex = /^(\d+)\s*[はを]\s*([SABC])\s*$/i;
     const priorityMatch = normalizedText.match(priorityRegex);
 
     if (priorityMatch) {
@@ -98,6 +140,8 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
 
         if (command === '削除') {
             await handleTaskUpdateStatus(userId, replyToken, displayIndex, '削除済み');
+        } else if (command === '戻す') {
+            await handleTaskUpdateStatus(userId, replyToken, displayIndex, '未処理');
         } else {
             await handleTaskUpdateStatus(userId, replyToken, displayIndex, command as Status);
         }

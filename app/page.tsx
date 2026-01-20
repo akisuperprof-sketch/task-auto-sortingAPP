@@ -116,6 +116,7 @@ function DashboardContent() {
     const statusMap: Record<string, string> = {
       'done_zone': '完了',
       '完了': '完了',
+      'progress_zone': '進行中',
       'trash_zone': '削除済み',
       '削除済み': '削除済み',
       'pending_zone': '保留',
@@ -181,8 +182,8 @@ function DashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px] flex flex-col relative overflow-hidden">
-      <header className="max-w-[2200px] w-full mx-auto flex justify-between items-center mb-1 px-1 flex-shrink-0">
+    <div className="h-[100dvh] flex flex-col bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px] relative overflow-hidden">
+      <header className="max-w-[2200px] w-full mx-auto flex justify-between items-center mb-1 px-1 flex-shrink-0 h-4">
         <div className="flex items-center gap-2">
           <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
             タスク自動整理 ver{version}
@@ -194,19 +195,37 @@ function DashboardContent() {
       </header>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden">
-          <main className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-1 h-full overflow-y-auto pb-16 md:pb-0 scrollbar-hide">
-            <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+        <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
+
+          {/* Mobile Scroll Indicators */}
+          <div className="md:hidden absolute top-1/2 left-0 z-20 -translate-y-1/2 pointer-events-none opacity-40 animate-pulse">
+            <span className="text-white text-lg ml-1">◀</span>
+          </div>
+          <div className="md:hidden absolute top-1/2 right-0 z-20 -translate-y-1/2 pointer-events-none opacity-40 animate-pulse">
+            <span className="text-white text-lg mr-1">▶</span>
+          </div>
+
+          <main className="flex-1 flex md:grid md:grid-cols-4 gap-1 h-full overflow-x-auto md:overflow-x-hidden snap-x snap-mandatory scrollbar-hide">
+            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
+              <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            </div>
+            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
+              <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            </div>
+            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
+              <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            </div>
+            <div className="min-w-[85vw] md:min-w-0 h-full snap-center">
+              <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            </div>
           </main>
 
-          <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-2 py-1 md:p-0">
-            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={16} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
+          <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
+            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={14} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
+            <DropZoneStrip id="progress_zone" icon={<span className="text-[14px]">🏃</span>} active={false} onClick={() => { }} color="text-cyan-500" count={tasks.filter(t => t.status === '進行中').length} label="進行" />
             <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
             <DropZoneStrip id="watch_zone" icon={<span className="text-[14px]">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); }} color="text-blue-500" count={watchTasks.length} label="静観" />
-            <DropZoneStrip id="trash_zone" icon={<Trash2 size={16} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
+            <DropZoneStrip id="trash_zone" icon={<Trash2 size={14} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
           </div>
 
           {showDone && <SideDrawer id="完了" title="DONE" items={doneTasks} onClose={() => setShowDone(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
