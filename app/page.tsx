@@ -38,6 +38,9 @@ function DashboardContent() {
   const [isAdding, setIsAdding] = useState(false);
   const [devRankName, setDevRankName] = useState('自由設定（名前変更可能）');
   const [isEditingDevName, setIsEditingDevName] = useState(false);
+  const [justAddedIds, setJustAddedIds] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -58,12 +61,56 @@ function DashboardContent() {
 
     const savedDevName = localStorage.getItem('dev_rank_name');
     if (savedDevName) setDevRankName(savedDevName);
-  }, []);
 
-  const saveDevName = (newName: string) => {
+    if (userIdFromUrl) {
+      logAccess(userIdFromUrl, window.location.pathname);
+      loadUserSettings(userIdFromUrl);
+    }
+  }, [userIdFromUrl]);
+
+  const logAccess = (userId: string, path: string) => {
+    fetch('/api/log-access', {
+      method: 'POST',
+      body: JSON.stringify({ userId, path }),
+    }).catch(console.error);
+  };
+
+  const notifyError = (err: any, context: string) => {
+    setError(`システムエラー発生: ${context}`);
+    fetch('/api/notify-error', {
+      method: 'POST',
+      body: JSON.stringify({ error: err, context }),
+    }).catch(console.error);
+  };
+
+  const loadUserSettings = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/user-settings?userId=${userId}`);
+      const data = await res.json();
+      if (data.dev_rank_name) {
+        setDevRankName(data.dev_rank_name);
+        localStorage.setItem('dev_rank_name', data.dev_rank_name);
+      }
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+    }
+  };
+
+  const saveDevName = async (newName: string) => {
     setDevRankName(newName);
     localStorage.setItem('dev_rank_name', newName);
     setIsEditingDevName(false);
+
+    if (userIdFromUrl) {
+      try {
+        await fetch('/api/user-settings', {
+          method: 'POST',
+          body: JSON.stringify({ userId: userIdFromUrl, devRankName: newName }),
+        });
+      } catch (err) {
+        console.error("Failed to save settings:", err);
+      }
+    }
   };
 
   const fetchTasks = async () => {
@@ -72,14 +119,19 @@ function DashboardContent() {
       return;
     }
     setLoading(true);
+    setError(null);
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('user_id', userIdFromUrl)
       .order('created_at', { ascending: false });
 
-    if (error) console.error('Error fetching tasks:', error);
-    else setTasks(data as Task[]);
+    if (error) {
+      console.error('Error fetching tasks:', error);
+      notifyError(error, "タスク読み込み");
+    } else {
+      setTasks(data as Task[]);
+    }
     setLoading(false);
   };
 
@@ -131,13 +183,19 @@ function DashboardContent() {
         status: '未処理'
       }));
 
-      const { data, error } = await supabase.from('tasks').insert(toInsert).select();
-      if (!error && data) {
+      const { data, error: insertError } = await supabase.from('tasks').insert(toInsert).select();
+      if (!insertError && data) {
         setTasks(prev => [...(data as Task[]), ...prev]);
+        const ids = (data as Task[]).map(t => t.id);
+        setJustAddedIds(ids);
+        setTimeout(() => setJustAddedIds([]), 5000); // 5秒間ハイライト
         setNewTaskValue('');
+      } else if (insertError) {
+        throw insertError;
       }
     } catch (err) {
       console.error('Failed to add task:', err);
+      notifyError(err, "タスク追加");
       // Fallback: add as IDEA if analysis fails
       const { data, error } = await supabase.from('tasks').insert([{
         title: newTaskValue.trim(),
@@ -148,6 +206,8 @@ function DashboardContent() {
       }]).select();
       if (!error && data) {
         setTasks(prev => [...(data as Task[]), ...prev]);
+        setJustAddedIds([(data as Task[])[0].id]);
+        setTimeout(() => setJustAddedIds([]), 5000);
         setNewTaskValue('');
       }
     } finally {
@@ -157,16 +217,25 @@ function DashboardContent() {
 
   const getActiveTasks = (priority: string) => tasks.filter(t => t.priority === priority && !['完了', '削除済み', '保留', '静観'].includes(t.status));
 
-  const sTasks = getActiveTasks('S');
-  const aTasks = getActiveTasks('A');
-  const bTasks = getActiveTasks('B');
-  const cTasks = getActiveTasks('C');
-  const devTasks = getActiveTasks('DEV');
-  const ideaTasks = getActiveTasks('IDEA');
-  const doneTasks = tasks.filter(t => t.status === '完了');
-  const trashTasks = tasks.filter(t => t.status === '削除済み');
-  const pendingTasks = tasks.filter(t => t.status === '保留');
-  const watchTasks = tasks.filter(t => t.status === '静観');
+  const applySearch = (items: Task[]) => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.toLowerCase();
+    return items.map(t => ({
+      ...t,
+      isHiddenBySearch: !(t.title.toLowerCase().includes(q) || (t.category && t.category.toLowerCase().includes(q)))
+    }));
+  };
+
+  const sTasks = applySearch(getActiveTasks('S'));
+  const aTasks = applySearch(getActiveTasks('A'));
+  const bTasks = applySearch(getActiveTasks('B'));
+  const cTasks = applySearch(getActiveTasks('C'));
+  const devTasks = applySearch(getActiveTasks('DEV'));
+  const ideaTasks = applySearch(getActiveTasks('IDEA'));
+  const doneTasks = applySearch(tasks.filter(t => t.status === '完了'));
+  const trashTasks = applySearch(tasks.filter(t => t.status === '削除済み'));
+  const pendingTasks = applySearch(tasks.filter(t => t.status === '保留'));
+  const watchTasks = applySearch(tasks.filter(t => t.status === '静観'));
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -249,30 +318,73 @@ function DashboardContent() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px] relative overflow-hidden">
-      <header className="max-w-[2200px] w-full mx-auto flex gap-3 items-center mb-1 px-1 flex-shrink-0 h-6">
+      <style jsx global>{`
+        @keyframes flash {
+          0% { background-color: rgba(16, 185, 129, 0.2); }
+          50% { background-color: rgba(16, 185, 129, 0.4); }
+          100% { background-color: transparent; }
+        }
+        .animate-flash-highlight {
+          animation: flash 1.5s ease-in-out infinite;
+        }
+      `}</style>
+
+      {/* Loading Overlay */}
+      {loading && !tasks.length && (
+        <div className="absolute inset-0 z-[60] bg-[#050608]/80 backdrop-blur-md flex flex-col items-center justify-center">
+          <RefreshCw size={24} className="animate-spin text-emerald-500 mb-2" />
+          <p className="text-[10px] text-emerald-500 font-black tracking-widest uppercase animate-pulse">SYSTEM LOADING...</p>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {error && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[70] bg-red-950/90 border border-red-500 text-red-500 px-4 py-2 rounded shadow-2xl flex items-center gap-2">
+          <span className="text-xs font-black">!</span>
+          <p className="text-[9px] font-bold">{error}</p>
+          <button onClick={() => setError(null)} className="ml-2 hover:text-white">×</button>
+        </div>
+      )}
+
+      <header className="max-w-[2200px] w-full mx-auto flex gap-2 md:gap-3 items-center mb-1 px-1 flex-shrink-0 h-6">
         <div className="flex items-center">
-          <h1 className="text-[10px] font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase whitespace-nowrap">
+          <h1 className="text-[9px] md:text-[10px] font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase whitespace-nowrap">
             TM-OS {version}
           </h1>
         </div>
 
-        <div className="flex-1 flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 group focus-within:border-emerald-500/50 transition-colors">
-          <input
-            type="text"
-            placeholder="タスクを入力（AIで自動分類）..."
-            value={newTaskValue}
-            onChange={(e) => setNewTaskValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-            className="flex-1 bg-transparent outline-none text-[9px] text-white placeholder-gray-600 h-full"
-            disabled={isAdding}
-          />
-          <button
-            onClick={handleAddTask}
-            disabled={isAdding || !newTaskValue.trim()}
-            className={clsx("ml-1 transition-colors", newTaskValue.trim() ? "text-emerald-500" : "text-gray-700")}
-          >
-            {isAdding ? <RefreshCw size={10} className="animate-spin" /> : <span className="text-xs font-bold">+</span>}
-          </button>
+        {/* Search & Add */}
+        <div className="flex-1 flex gap-1 items-center">
+          <div className="flex-1 flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
+            <span className="text-[8px] mr-1 opacity-40">🔍</span>
+            <input
+              type="text"
+              placeholder="検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent outline-none text-[9px] text-white placeholder-gray-700 h-full"
+            />
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="text-[8px] text-gray-600 hover:text-white">×</button>}
+          </div>
+
+          <div className="flex-[2] flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
+            <input
+              type="text"
+              placeholder="タスクを入力（AI解析）..."
+              value={newTaskValue}
+              onChange={(e) => setNewTaskValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+              className="flex-1 bg-transparent outline-none text-[9px] text-white placeholder-gray-700 h-full"
+              disabled={isAdding}
+            />
+            <button
+              onClick={handleAddTask}
+              disabled={isAdding || !newTaskValue.trim()}
+              className={clsx("ml-1 transition-colors", newTaskValue.trim() ? "text-emerald-500" : "text-gray-700")}
+            >
+              {isAdding ? <RefreshCw size={10} className="animate-spin" /> : <span className="text-xs font-bold">+</span>}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
@@ -289,12 +401,12 @@ function DashboardContent() {
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
           <main className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-0.5 md:gap-1 h-full overflow-hidden">
-            <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="DEV" title={devRankName} color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveDevName} />
-            <DroppableColumn id="IDEA" title="💡 アイデア" color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="DEV" title={devRankName} color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveDevName} justAddedIds={justAddedIds} />
+            <DroppableColumn id="IDEA" title="💡 アイデア" color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
           </main>
 
           <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
@@ -317,7 +429,7 @@ function DashboardContent() {
   );
 }
 
-function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus, isEditableTitle, onTitleSave }: any) {
+function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus, isEditableTitle, onTitleSave, justAddedIds }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [headerValue, setHeaderValue] = useState(title);
@@ -354,7 +466,7 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
       <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[50px]">
           {tasks.map((task: any) => (
-            <TaskItemCompact key={task.id} task={task} isEditing={editingId === task.id} editValue={editValue} onStartEdit={() => { setEditingId(task.id); setEditValue(task.title); }} onEditChange={setEditValue} onSaveEdit={() => updateTitle(task.id, editValue)} onCancelEdit={() => setEditingId(null)} onDone={() => updateStatus(task.id, '完了')} onDelete={() => updateStatus(task.id, '削除済み')} />
+            <TaskItemCompact key={task.id} task={task} isHidden={task.isHiddenBySearch} isNew={justAddedIds.includes(task.id)} isEditing={editingId === task.id} editValue={editValue} onStartEdit={() => { setEditingId(task.id); setEditValue(task.title); }} onEditChange={setEditValue} onSaveEdit={() => updateTitle(task.id, editValue)} onCancelEdit={() => setEditingId(null)} onDone={() => updateStatus(task.id, '完了')} onDelete={() => updateStatus(task.id, '削除済み')} />
           ))}
         </div>
       </SortableContext>
@@ -402,14 +514,14 @@ function SideDrawer({ id, title, items, onClose, onDelete, onUpdateStatus }: any
   );
 }
 
-function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange, onSaveEdit, onCancelEdit, onDone, onDelete }: any) {
+function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange, onSaveEdit, onCancelEdit, onDone, onDelete, isNew, isHidden }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: isEditing });
   const isCompleted = task.status === '完了';
   const isInProgress = task.status === '進行中';
-  const isDev = task.status === '開発中';
+  const isDev = task.priority === 'DEV';
 
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-1 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isDev && "border-l-indigo-500/50 border-l-2 bg-indigo-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10")}>
+    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : (isHidden ? 0.1 : 1) }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-1 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10", isNew && "animate-flash-highlight bg-emerald-500/10 border-emerald-500/30")}>
       <div className="flex items-center gap-1 min-w-0 flex-1 h-full cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
         <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px] select-none">{isInProgress ? '🏃' : (isDev ? '🛠️' : (task.category || '---'))}</span>
         {isEditing ? (
