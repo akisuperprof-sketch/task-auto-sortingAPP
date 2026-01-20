@@ -16,8 +16,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .neq('status', '完了') // Exclude completed tasks from main view
-      .order('created_at', { ascending: true }); // Default sort by date
+      .order('created_at', { ascending: false }); // Show newer first in dashboard
 
     if (error) {
       console.error('Error fetching tasks:', error);
@@ -37,25 +36,25 @@ export default function Dashboard() {
 
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('tasks').update({ status }).eq('id', id);
-    // Optimistic update or refetch
-    setTasks(prev => prev.filter(t => t.id !== id));
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: status as any } : t));
   };
 
   const deleteTask = async (id: string) => {
-    if (confirm('Permanently delete this task?')) {
+    if (confirm('Permanently delete this task from the database?')) {
       await supabase.from('tasks').delete().eq('id', id);
       setTasks(prev => prev.filter(t => t.id !== id));
     }
   };
 
-  // Group tasks by priority
-  const sTasks = tasks.filter(t => t.priority === 'S');
-  const aTasks = tasks.filter(t => t.priority === 'A');
-  const bcTasks = tasks.filter(t => ['B', 'C'].includes(t.priority));
+  // Group tasks by priority/status
+  const sTasks = tasks.filter(t => t.priority === 'S' && t.status !== '完了');
+  const aTasks = tasks.filter(t => t.priority === 'A' && t.status !== '完了');
+  const bcTasks = tasks.filter(t => ['B', 'C'].includes(t.priority) && t.status !== '完了');
+  const completedTasks = tasks.filter(t => t.status === '完了');
 
   return (
     <div className="min-h-screen bg-[#0F1115] text-gray-100 p-4 md:p-8 font-sans selection:bg-green-500/30">
-      <header className="max-w-7xl mx-auto flex justify-between items-center mb-10">
+      <header className="max-w-[1600px] mx-auto flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
             Task Dashboard
@@ -72,69 +71,49 @@ export default function Dashboard() {
         </button>
       </header>
 
-      <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+      <main className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-        {/* Column 1: Red / Urgent (S) */}
+        {/* Urgent (S) */}
         <div className="space-y-4">
-          <SectionHeader
-            title="Urgent"
-            count={sTasks.length}
-            icon={<Flame className="text-red-500 fill-red-500/20" />}
-          />
+          <SectionHeader title="Urgent (S)" count={sTasks.length} icon={<Flame className="text-red-500" />} />
           <div className="space-y-4">
             {sTasks.map(task => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                accent="border-l-4 border-l-red-500"
-                onDone={() => updateStatus(task.id, '完了')}
-                onDelete={() => deleteTask(task.id)}
-              />
+              <TaskCard key={task.id} task={task} accent="border-l-4 border-l-red-500" onDone={() => updateStatus(task.id, '完了')} onDelete={() => deleteTask(task.id)} />
             ))}
             {sTasks.length === 0 && <EmptyState />}
           </div>
         </div>
 
-        {/* Column 2: Orange / High (A) */}
+        {/* High (A) */}
         <div className="space-y-4">
-          <SectionHeader
-            title="High Priority"
-            count={aTasks.length}
-            icon={<Zap className="text-amber-500 fill-amber-500/20" />}
-          />
+          <SectionHeader title="High (A)" count={aTasks.length} icon={<Zap className="text-amber-500" />} />
           <div className="space-y-4">
             {aTasks.map(task => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                accent="border-l-4 border-l-amber-500"
-                onDone={() => updateStatus(task.id, '完了')}
-                onDelete={() => deleteTask(task.id)}
-              />
+              <TaskCard key={task.id} task={task} accent="border-l-4 border-l-amber-500" onDone={() => updateStatus(task.id, '完了')} onDelete={() => deleteTask(task.id)} />
             ))}
             {aTasks.length === 0 && <EmptyState />}
           </div>
         </div>
 
-        {/* Column 3: Green/Blue / Backlog (B/C) */}
+        {/* Backlog (B/C) */}
         <div className="space-y-4">
-          <SectionHeader
-            title="Backlog"
-            count={bcTasks.length}
-            icon={<Leaf className="text-emerald-500 fill-emerald-500/20" />}
-          />
+          <SectionHeader title="Backlog" count={bcTasks.length} icon={<Leaf className="text-emerald-500" />} />
           <div className="space-y-3">
             {bcTasks.map(task => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                compact
-                accent="border-l-4 border-l-emerald-500"
-                onDone={() => updateStatus(task.id, '完了')}
-                onDelete={() => deleteTask(task.id)}
-              />
+              <TaskCard key={task.id} task={task} compact accent="border-l-4 border-l-emerald-500" onDone={() => updateStatus(task.id, '完了')} onDelete={() => deleteTask(task.id)} />
             ))}
             {bcTasks.length === 0 && <EmptyState />}
+          </div>
+        </div>
+
+        {/* Completed */}
+        <div className="space-y-4">
+          <SectionHeader title="Completed" count={completedTasks.length} icon={<CheckCircle2 className="text-gray-500" />} />
+          <div className="space-y-3 opacity-60">
+            {completedTasks.map(task => (
+              <TaskCard key={task.id} task={task} compact accent="border-l-4 border-l-gray-700" isCompleted onDelete={() => deleteTask(task.id)} />
+            ))}
+            {completedTasks.length === 0 && <EmptyState />}
           </div>
         </div>
 
@@ -148,57 +127,55 @@ export default function Dashboard() {
 function SectionHeader({ title, count, icon }: { title: string, count: number, icon: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 px-1 mb-2">
-      <div className="p-2 bg-white/5 rounded-lg border border-white/5 shadow-sm">
+      <div className="p-2 bg-white/5 rounded-lg border border-white/5">
         {icon}
       </div>
-      <h2 className="text-lg font-semibold tracking-wide text-gray-200">{title}</h2>
-      <span className="ml-auto bg-white/10 text-gray-400 text-xs px-2 py-1 rounded-full">{count}</span>
+      <h2 className="text-base font-semibold text-gray-200">{title}</h2>
+      <span className="ml-auto bg-white/10 text-gray-400 text-[10px] px-2 py-0.5 rounded-full">{count}</span>
     </div>
   );
 }
 
-function TaskCard({ task, accent, onDone, onDelete, compact }: {
-  task: Task, accent: string, onDone: () => void, onDelete: () => void, compact?: boolean
+function TaskCard({ task, accent, onDone, onDelete, compact, isCompleted }: {
+  task: Task, accent: string, onDone?: () => void, onDelete: () => void, compact?: boolean, isCompleted?: boolean
 }) {
   return (
     <div className={clsx(
-      "group relative bg-[#15171C] hover:bg-[#1A1D23] transition-all duration-300 rounded-xl p-4 border border-white/5 shadow-sm hover:shadow-md hover:border-white/10",
-      accent
+      "group relative bg-[#15171C] hover:bg-[#1A1D23] transition-all duration-300 rounded-xl p-4 border border-white/5",
+      accent,
+      isCompleted && "bg-[#0F1115]"
     )}>
-      {/* Category Badge */}
       <div className="flex justify-between items-start mb-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold bg-white/5 px-2 py-0.5 rounded">
+        <span className="text-[9px] uppercase tracking-wider text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded">
           {task.category || 'General'}
-        </span>
-        <span className={clsx("text-xs font-mono", compact ? "text-gray-600" : "text-gray-500")}>
-          {new Date(task.created_at).toLocaleDateString()}
         </span>
       </div>
 
-      {/* Title */}
       <h3 className={clsx(
-        "font-medium text-gray-200 leading-snug pr-8",
-        compact ? "text-sm" : "text-base"
+        "font-medium leading-snug",
+        compact ? "text-sm" : "text-base",
+        isCompleted ? "text-gray-500 line-through" : "text-gray-200"
       )}>
         {task.title}
       </h3>
 
-      {/* Actions (Visible on hover on desktop, always visible on mobile?) 
-          Let's align them bottom right or absolute top right 
-      */}
       <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-white/5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-400 bg-red-400/10 hover:bg-red-400/20 rounded-lg transition"
+          title="Delete from database"
+          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-md transition"
         >
-          <Trash2 size={14} /> Delete
+          <Trash2 size={12} /> Delete
         </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDone(); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 rounded-lg transition"
-        >
-          <CheckCircle2 size={14} /> Done
-        </button>
+        {!isCompleted && onDone && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDone(); }}
+            title="Mark as completed"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-emerald-400/70 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition"
+          >
+            <CheckCircle2 size={12} /> Done
+          </button>
+        )}
       </div>
     </div>
   );
@@ -206,8 +183,8 @@ function TaskCard({ task, accent, onDone, onDelete, compact }: {
 
 function EmptyState() {
   return (
-    <div className="border border-dashed border-white/10 rounded-xl p-6 text-center">
-      <p className="text-gray-600 text-sm">No tasks in this section.</p>
+    <div className="border border-dashed border-white/5 rounded-xl p-6 text-center">
+      <p className="text-gray-600 text-[11px]">No tasks</p>
     </div>
   );
 }
