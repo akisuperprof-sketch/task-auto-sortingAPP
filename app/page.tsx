@@ -36,6 +36,8 @@ function DashboardContent() {
   const [version, setVersion] = useState('');
   const [newTaskValue, setNewTaskValue] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [devRankName, setDevRankName] = useState('自由設定（名前変更可能）');
+  const [isEditingDevName, setIsEditingDevName] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -53,7 +55,16 @@ function DashboardContent() {
       setShowHelp(true);
       localStorage.setItem('help_shown_v1', 'true');
     }
+
+    const savedDevName = localStorage.getItem('dev_rank_name');
+    if (savedDevName) setDevRankName(savedDevName);
   }, []);
+
+  const saveDevName = (newName: string) => {
+    setDevRankName(newName);
+    localStorage.setItem('dev_rank_name', newName);
+    setIsEditingDevName(false);
+  };
 
   const fetchTasks = async () => {
     if (!userIdFromUrl) {
@@ -282,7 +293,7 @@ function DashboardContent() {
             <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
-            <DroppableColumn id="DEV" title="🛠️ 開発" color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="DEV" title={devRankName} color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveDevName} />
             <DroppableColumn id="IDEA" title="💡 アイデア" color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
           </main>
 
@@ -306,12 +317,38 @@ function DashboardContent() {
   );
 }
 
-function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus }: any) {
+function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus, isEditableTitle, onTitleSave }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const [isEditingHeader, setIsEditingHeader] = useState(false);
+  const [headerValue, setHeaderValue] = useState(title);
+
+  useEffect(() => {
+    setHeaderValue(title);
+  }, [title]);
+
   return (
     <section ref={setNodeRef} className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
       <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
-        <h2 className={clsx("text-[8px] font-black tracking-tighter", color)}>{title}</h2>
+        {isEditableTitle && isEditingHeader ? (
+          <input
+            autoFocus
+            className={clsx("text-[8px] font-black tracking-tighter bg-transparent outline-none w-full", color)}
+            value={headerValue}
+            onChange={(e) => setHeaderValue(e.target.value)}
+            onBlur={() => { onTitleSave(headerValue); setIsEditingHeader(false); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { onTitleSave(headerValue); setIsEditingHeader(false); }
+              if (e.key === 'Escape') { setHeaderValue(title); setIsEditingHeader(false); }
+            }}
+          />
+        ) : (
+          <h2
+            className={clsx("text-[8px] font-black tracking-tighter truncate cursor-pointer", color)}
+            onClick={() => isEditableTitle && setIsEditingHeader(true)}
+          >
+            {title}
+          </h2>
+        )}
         <span className="text-[7px] font-mono text-gray-700">{tasks.length}</span>
       </div>
       <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
