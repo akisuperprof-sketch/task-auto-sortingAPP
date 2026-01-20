@@ -108,6 +108,7 @@ function DashboardContent() {
   const bTasks = getActiveTasks('B');
   const cTasks = getActiveTasks('C');
   const devTasks = getActiveTasks('DEV');
+  const ideaTasks = getActiveTasks('IDEA');
   const doneTasks = tasks.filter(t => t.status === '完了');
   const trashTasks = tasks.filter(t => t.status === '削除済み');
   const pendingTasks = tasks.filter(t => t.status === '保留');
@@ -139,7 +140,7 @@ function DashboardContent() {
     if (statusMap[overId]) {
       updateStatus(activeId, statusMap[overId]);
       return;
-    } else if (['S', 'A', 'B', 'C', 'DEV'].includes(overId)) {
+    } else if (['S', 'A', 'B', 'C', 'DEV', 'IDEA'].includes(overId)) {
       updatePriority(activeId, overId);
       return;
     }
@@ -213,12 +214,13 @@ function DashboardContent() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
-          <main className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-1 h-full overflow-hidden">
+          <main className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-0.5 md:gap-1 h-full overflow-hidden">
             <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="DEV" title="🛠️ 開発" color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="IDEA" title="💡 アイデア" color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
           </main>
 
           <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
@@ -329,7 +331,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div className="bg-[#0D0F13] border border-white/10 rounded-lg w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col">
         <div className="sticky top-0 bg-[#0D0F13] border-b border-white/10 px-4 py-3 flex justify-between items-center">
-          <h2 className="text-xs font-black tracking-widest text-emerald-400 uppercase">TM-OS Manual</h2>
+          <h2 className="text-xs font-black tracking-widest text-emerald-400 uppercase">タスク自動整理使い方</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-white text-lg">×</button>
         </div>
 
@@ -351,8 +353,8 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               </div>
               <div>
                 <p className="text-gray-400 font-bold underline">3. ランク（優先度）変更</p>
-                <p className="text-gray-500 italic">「2 を S」「3 を A」</p>
-                <p className="text-gray-600">S, A, B, C のランクに即座に変更できます。</p>
+                <p className="text-gray-500 italic">「2 を S」「3 は 開発」「4 を メモ」</p>
+                <p className="text-gray-600">S, A, B, C, DEV, IDEA のランクに即座に変更できます。</p>
               </div>
               <div>
                 <p className="text-gray-400 font-bold underline">4. ステータス変更</p>
