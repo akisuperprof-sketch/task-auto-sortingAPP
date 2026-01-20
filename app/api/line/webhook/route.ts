@@ -16,6 +16,7 @@ const priorityOrder: Record<Priority, number> = {
     'A': 1,
     'B': 2,
     'C': 3,
+    'DEV': 4,
 };
 
 export async function POST(req: NextRequest) {
@@ -67,7 +68,7 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
             replyToken,
             messages: [{
                 type: "text",
-                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n自由に送るだけでAIが登録します。改行して一気に入れてもOKです。\n\n2. ランク変更\n・「1 を S」: 1番をSランクへ\n\n3. 内容の修正\n・「1 を 〇〇 に修正」: タイトルを変更\n\n4. 状態の変更\n・「1 完了」「2 進行中」「3 開発中」「4 削除」「2 は 削除」など。\n・「削除 2 3」や「17と19を完了」のように複数を一度に操作することも可能です。\n\n「一覧」でリスト表示、「ダッシュボード」で管理画面リンクを表示します。"
+                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n自由に送るだけでAIが登録します。改行して一気に入れてもOKです。\n\n2. ランク変更\n・「1 を S」: 1番をSランクへ\n・「2 は 開発」: 2番を開発ランクへ\n\n3. 内容の修正\n・「1 を 〇〇 に修正」: タイトルを変更\n\n4. 状態の変更\n・「1 完了」「2 進行中」「3 削除」「4 保留」「2 は 削除」など。\n・「削除 2 3」や「17と19を完了」のように複数を一度に操作することも可能です。\n\n「一覧」でリスト表示、「ダッシュボード」で管理画面リンクを表示します。"
             }],
         });
         return;
@@ -108,9 +109,9 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
     const taskLines: string[] = [];
 
     // Regex Definitions
-    const statusWords = "完了|削除|進行中|開発中|保留|静観|戻す";
+    const statusWords = "完了|削除|進行中|保留|静観|戻す";
     const editRegex = /^(\d+)\s*[はを]\s*(.+)\s*に修正$/;
-    const priorityRegex = /^(\d+)\s*[はを]?\s*([SABC])\s*$/i;
+    const priorityRegex = /^(\d+)\s*[はを]?\s*([SABC]|DEV|開発)\s*$/i;
     const statusEndRegex = new RegExp(`^([\\d\\sと、,]+)\\s*[はを]?\\s*(${statusWords})$`);
     const commandStartRegex = new RegExp(`^(${statusWords})\\s*([\\d\\sと、,]+)$`);
 
@@ -131,7 +132,8 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
 
         if (match = line.match(priorityRegex)) {
             const idx = parseInt(match[1], 10);
-            const priority = match[2].toUpperCase();
+            let priority = match[2].toUpperCase();
+            if (priority === '開発') priority = 'DEV';
             if (tasks[idx - 1]) {
                 await supabase.from('tasks').update({ priority, status: '未処理' }).eq('id', tasks[idx - 1].id);
                 commandResults.push(`✅優先度: 「${tasks[idx - 1].title}」[${priority}]`);
@@ -228,10 +230,11 @@ async function analyzeTasksWithAI(text: string) {
    - A: 緊急（今日明日中にやるべきこと）
    - B: 重要（時間はかかるが重要な計画、準備など）
    - C: その他（日常的な雑務、急がないもの）
+   - DEV: 開発・コーディング・技術的な作業
 
 返信形式：
 必ず以下のキーを持つJSON配列のみを返してください。余計な解説は不要です。
-[{"title": "タスク名", "category": "カテゴリ", "priority": "S/A/B/C"}]`;
+[{"title": "タスク名", "category": "カテゴリ", "priority": "S/A/B/C/DEV"}]`;
 
     try {
         const result = await model.generateContent(prompt);
@@ -269,12 +272,14 @@ function generateFlexMessage(userId: string, tasks: Task[]) {
         'A': '#FF9933',
         'B': '#33CC33',
         'C': '#3399FF',
+        'DEV': '#818CF8', // Indigo
     };
 
     const contents: any[] = tasks.map((task, index) => {
         const priorityColor = colors[task.priority] || '#000000';
-        const statusIcon = task.status === '進行中' ? '🏃' : (task.status === '開発中' ? '🛠️' : '');
-        const itemText = `${index + 1}. ${statusIcon} ${task.title}`;
+        const statusIcon = task.status === '進行中' ? '🏃' : '';
+        const priorityIcon = task.priority === 'DEV' ? '🛠️ ' : '';
+        const itemText = `${index + 1}. ${statusIcon}${priorityIcon}${task.title}`;
         const metaText = `(${task.priority})`;
 
         return {

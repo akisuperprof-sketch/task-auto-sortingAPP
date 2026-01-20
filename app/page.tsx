@@ -33,7 +33,6 @@ function DashboardContent() {
   const [showPending, setShowPending] = useState(false);
   const [showWatch, setShowWatch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showDev, setShowDev] = useState(false);
   const [version, setVersion] = useState('');
 
   const sensors = useSensors(
@@ -108,11 +107,11 @@ function DashboardContent() {
   const aTasks = getActiveTasks('A');
   const bTasks = getActiveTasks('B');
   const cTasks = getActiveTasks('C');
+  const devTasks = getActiveTasks('DEV');
   const doneTasks = tasks.filter(t => t.status === '完了');
   const trashTasks = tasks.filter(t => t.status === '削除済み');
   const pendingTasks = tasks.filter(t => t.status === '保留');
   const watchTasks = tasks.filter(t => t.status === '静観');
-  const devTasks = tasks.filter(t => t.status === '開発中');
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -140,7 +139,7 @@ function DashboardContent() {
     if (statusMap[overId]) {
       updateStatus(activeId, statusMap[overId]);
       return;
-    } else if (['S', 'A', 'B', 'C'].includes(overId)) {
+    } else if (['S', 'A', 'B', 'C', 'DEV'].includes(overId)) {
       updatePriority(activeId, overId);
       return;
     }
@@ -214,24 +213,23 @@ function DashboardContent() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
-          <main className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-1 h-full overflow-hidden">
+          <main className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-1 h-full overflow-hidden">
             <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
+            <DroppableColumn id="DEV" title="🛠️ 開発" color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
           </main>
 
           <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
-            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={14} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); setShowDev(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
+            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={14} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
             <DropZoneStrip id="progress_zone" icon={<span className="text-[14px]">🏃</span>} active={false} onClick={() => { }} color="text-cyan-500" count={tasks.filter(t => t.status === '進行中').length} label="進行" />
-            <DropZoneStrip id="dev_zone" icon={<span className="text-[14px]">🛠️</span>} active={showDev} onClick={() => { setShowDev(!showDev); setShowDone(false); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-indigo-400" count={devTasks.length} label="開発" />
-            <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); setShowDev(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
-            <DropZoneStrip id="watch_zone" icon={<span className="text-[14px]">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); setShowDev(false); }} color="text-blue-500" count={watchTasks.length} label="静観" />
-            <DropZoneStrip id="trash_zone" icon={<Trash2 size={14} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); setShowDev(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
+            <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
+            <DropZoneStrip id="watch_zone" icon={<span className="text-[14px]">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); }} color="text-blue-500" count={watchTasks.length} label="静観" />
+            <DropZoneStrip id="trash_zone" icon={<Trash2 size={14} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
           </div>
 
           {showDone && <SideDrawer id="完了" title="DONE" items={doneTasks} onClose={() => setShowDone(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
-          {showDev && <SideDrawer id="開発中" title="DEV" items={devTasks} onClose={() => setShowDev(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showPending && <SideDrawer id="保留" title="PENDING" items={pendingTasks} onClose={() => setShowPending(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showWatch && <SideDrawer id="静観" title="WATCH" items={watchTasks} onClose={() => setShowWatch(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
           {showTrash && <SideDrawer id="削除済み" title="TRASH" items={trashTasks} onClose={() => setShowTrash(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
