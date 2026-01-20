@@ -126,7 +126,12 @@ async function handleNewTask(userId: string, replyToken: string, text: string) {
         const responseText = result.response.text();
 
         // Clean markdown code blocks if present
-        const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        // Robust JSON extraction
+        const match = responseText.match(/\[[\s\S]*\]/);
+        if (!match) {
+            throw new Error("No JSON array found in AI response");
+        }
+        const cleanJson = match[0];
         const parsedTasks = JSON.parse(cleanJson);
 
         if (!Array.isArray(parsedTasks)) {
