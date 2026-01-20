@@ -15,12 +15,7 @@ import {
   DragEndEvent,
   useDroppable,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 export default function Dashboard() {
@@ -30,17 +25,25 @@ export default function Dashboard() {
   const [editValue, setEditValue] = useState('');
   const [showDone, setShowDone] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [version, setVersion] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  useEffect(() => {
+    const now = new Date();
+    const formatted = `${now.getFullYear().toString().slice(2)}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    setVersion(formatted);
+  }, []);
+
   const fetchTasks = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) console.error('Error fetching tasks:', error);
@@ -95,19 +98,43 @@ export default function Dashboard() {
 
     if (activeId === overId) return;
 
+    // 1. Handle cross-column drops (status/priority changes)
     if (overId === 'done_zone' || overId === '完了') {
       updateStatus(activeId, '完了');
+      return;
     } else if (overId === 'trash_zone' || overId === '削除済み') {
       updateStatus(activeId, '削除済み');
+      return;
     } else if (['S', 'A', 'B', 'C'].includes(overId)) {
       updatePriority(activeId, overId);
-    } else {
-      // If dropped over a task, find which column that task belongs to
-      const overTask = tasks.find(t => t.id === overId);
-      if (overTask) {
-        if (overTask.status === '完了') updateStatus(activeId, '完了');
-        else if (overTask.status === '削除済み') updateStatus(activeId, '削除済み');
-        else updatePriority(activeId, overTask.priority);
+      return;
+    }
+
+    // 2. Handle vertical reordering (same column or different column drop on another task)
+    const activeIndex = tasks.findIndex(t => t.id === activeId);
+    const overIndex = tasks.findIndex(t => t.id === overId);
+
+    if (activeIndex !== -1 && overIndex !== -1) {
+      const activeTask = tasks[activeIndex];
+      const overTask = tasks[overIndex];
+
+      // If dropped on a task in a different priority/status, update priority first
+      if (activeTask.priority !== overTask.priority || activeTask.status !== overTask.status) {
+        supabase.from('tasks').update({
+          priority: overTask.priority,
+          status: overTask.status
+        }).eq('id', activeId).then(() => {
+          setTasks((items) => arrayMove(items, activeIndex, overIndex).map((t, idx) => ({ ...t, sort_order: idx })));
+        });
+      } else {
+        // Same category, just reorder locally
+        setTasks((items) => {
+          const newItems = arrayMove(items, activeIndex, overIndex);
+          // Optional: persist new order to DB if you have a sort_order column
+          const updateData = newItems.map((item, idx) => ({ id: item.id, sort_order: idx }));
+          // Note: Full persistence logic involves batch updating supabase
+          return newItems;
+        });
       }
     }
   };
@@ -117,7 +144,7 @@ export default function Dashboard() {
       <header className="max-w-[2200px] w-full mx-auto flex justify-between items-center mb-1 px-1 flex-shrink-0">
         <div className="flex items-center gap-2">
           <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
-            TM-OS v3.2
+            タスク自動整理 ver{version}
           </h1>
         </div>
         <button onClick={fetchTasks} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400" disabled={loading}>
