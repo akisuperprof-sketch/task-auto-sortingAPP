@@ -209,14 +209,17 @@ async function handleTaskUpdateTitle(userId: string, replyToken: string, display
 
 async function handleNewTask(userId: string, replyToken: string, text: string) {
     // 1. Analyze with Gemini
-    const prompt = `Analyze the text: "${text}". 
-  Extract tasks. For each, determine:
-  - Title (short summary)
-  - Category (e.g., Work, Personal, Dev)
-  - Priority (S=Urgent, A=High, B=Medium, C=Low)
-  
-  Return ONLY a JSON array of objects with keys: "title", "category", "priority". 
-  Example: [{"title": "Buy milk", "category": "Home", "priority": "B"}]`;
+    const prompt = `以下のテキストを解析し、タスクを抽出してください: "${text}"
+    
+    各タスクについて、以下の基準で優先度(priority)を判定してください：
+    - S: 重要度も緊急度も高いもの
+    - A: 緊急度が高いもの
+    - B: 重要度が高いもの
+    - C: 重要度も緊急度も低いもの
+    
+    返信は必ず以下のキーを持つJSON配列のみとしてください：
+    "title" (タスク名), "category" (カテゴリ), "priority" (S, A, B, Cのいずれか)
+    例: [{"title": "会議資料作成", "category": "仕事", "priority": "S"}]`;
 
     try {
         const result = await model.generateContent(prompt);
@@ -281,7 +284,8 @@ async function fetchActiveTasks(userId: string): Promise<Task[]> {
         .from('tasks')
         .select('*')
         .eq('user_id', userId)
-        .in('status', ['未処理', '進行中']);
+        .not('status', 'eq', '削除済み')
+        .not('status', 'eq', '完了');
 
     if (error || !data) return [];
 

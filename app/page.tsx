@@ -12,6 +12,7 @@ import {
   useSensors,
   PointerSensor,
   KeyboardSensor,
+  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -56,8 +57,8 @@ export default function Dashboard() {
   };
 
   const updatePriority = async (id: string, priority: string) => {
-    await supabase.from('tasks').update({ priority }).eq('id', id);
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: priority as any } : t));
+    await supabase.from('tasks').update({ priority, status: '未処理' }).eq('id', id);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: priority as any, status: '未処理' } : t));
   };
 
   const updateTitle = async (id: string, title: string) => {
@@ -67,68 +68,62 @@ export default function Dashboard() {
     setEditingId(null);
   };
 
-  const deleteTask = async (id: string) => {
-    if (confirm('Delete?')) {
+  const deleteTaskPermanently = async (id: string) => {
+    if (confirm('完全に削除しますか？')) {
       await supabase.from('tasks').delete().eq('id', id);
       setTasks(prev => prev.filter(t => t.id !== id));
     }
   };
 
-  const sTasks = tasks.filter(t => t.priority === 'S' && t.status !== '完了');
-  const aTasks = tasks.filter(t => t.priority === 'A' && t.status !== '完了');
-  const bcTasks = tasks.filter(t => ['B', 'C'].includes(t.priority) && t.status !== '完了');
-  const completedTasks = tasks.filter(t => t.status === '完了');
+  const activeAndDone = tasks.filter(t => t.status !== '削除済み');
+
+  const sTasks = activeAndDone.filter(t => t.priority === 'S' && t.status !== '完了');
+  const aTasks = activeAndDone.filter(t => t.priority === 'A' && t.status !== '完了');
+  const bTasks = activeAndDone.filter(t => t.priority === 'B' && t.status !== '完了');
+  const cTasks = activeAndDone.filter(t => t.priority === 'C' && t.status !== '完了');
+  const doneTasks = activeAndDone.filter(t => t.status === '完了');
+  const trashTasks = tasks.filter(t => t.status === '削除済み');
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeTask = tasks.find(t => t.id === active.id);
+    const overId = over.id as string;
+    if (!activeTask) return;
+
+    if (overId === '完了') {
+      updateStatus(activeTask.id, '完了');
+    } else if (overId === '削除済み') {
+      updateStatus(activeTask.id, '削除済み');
+    } else if (['S', 'A', 'B', 'C'].includes(overId)) {
+      updatePriority(activeTask.id, overId);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px]">
-      <header className="max-w-[1900px] mx-auto flex justify-between items-center mb-1 px-1">
+      <header className="max-w-[2200px] mx-auto flex justify-between items-center mb-1 px-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase text-center">
-            TM-OS
+          <h1 className="text-xs font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase">
+            TM-OS v3
           </h1>
-          <span className="text-[7px] text-gray-700 font-mono px-1 border border-white/5 rounded">v2.2.0</span>
         </div>
-
-        <button
-          onClick={fetchTasks}
-          className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400"
-          disabled={loading}
-        >
+        <button onClick={fetchTasks} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400" disabled={loading}>
           <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
         </button>
       </header>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={(event) => {
-          const { active, over } = event;
-          if (!over) return;
-          const activeTask = tasks.find(t => t.id === active.id);
-          const overId = over.id as string;
-          if (!activeTask) return;
-
-          if (overId === '完了') {
-            updateStatus(activeTask.id, '完了');
-          } else if (['S', 'A', 'B', 'C'].includes(overId)) {
-            if (activeTask.status === '完了') {
-              supabase.from('tasks').update({ status: '未処理', priority: overId }).eq('id', activeTask.id).then(() => {
-                setTasks(prev => prev.map(t => t.id === activeTask.id ? { ...t, status: '未処理', priority: overId as any } : t));
-              });
-            } else {
-              updatePriority(activeTask.id, overId);
-            }
-          }
-        }}
-      >
-        <main className="max-w-[2000px] mx-auto grid grid-cols-4 gap-1 h-[calc(100vh-30px)]">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <main className="max-w-[2200px] mx-auto grid grid-cols-6 gap-1 h-[calc(100vh-30px)]">
           {[
-            { id: 'S', title: 'S', color: 'text-red-500', items: sTasks },
-            { id: 'A', title: 'A', color: 'text-amber-500', items: aTasks },
-            { id: 'B', title: 'B/C', color: 'text-emerald-500', items: bcTasks },
-            { id: '完了', title: 'Done', color: 'text-gray-600', items: completedTasks }
+            { id: 'S', title: 'S: 重要+緊急', color: 'text-red-500', items: sTasks },
+            { id: 'A', title: 'A: 緊急のみ', color: 'text-amber-500', items: aTasks },
+            { id: 'B', title: 'B: 重要のみ', color: 'text-blue-500', items: bTasks },
+            { id: 'C', title: 'C: 低優先', color: 'text-emerald-500', items: cTasks },
+            { id: '完了', title: 'DONE: 完了', color: 'text-gray-500', items: doneTasks },
+            { id: '削除済み', title: 'TRASH: 削除', color: 'text-red-900', items: trashTasks }
           ].map(col => (
-            <section key={col.id} id={col.id} className="flex flex-col bg-white/[0.01] border border-white/[0.03] rounded-sm overflow-hidden">
+            <section key={col.id} id={col.id} className="flex flex-col bg-white/[0.01] border border-white/[0.03] rounded-sm overflow-hidden min-w-0">
               <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
                 <h2 className={clsx("text-[8px] font-black tracking-tighter", col.color)}>{col.title}</h2>
                 <span className="text-[7px] font-mono text-gray-700">{col.items.length}</span>
@@ -147,7 +142,7 @@ export default function Dashboard() {
                       onSaveEdit={() => updateTitle(task.id, editValue)}
                       onCancelEdit={() => setEditingId(null)}
                       onDone={() => updateStatus(task.id, '完了')}
-                      onDelete={() => deleteTask(task.id)}
+                      onDelete={() => col.id === '削除済み' ? deleteTaskPermanently(task.id) : updateStatus(task.id, '削除済み')}
                     />
                   ))}
                 </div>
