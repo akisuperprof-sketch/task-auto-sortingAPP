@@ -194,19 +194,19 @@ function DashboardContent() {
       </header>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <div className="flex-1 flex gap-1 relative overflow-hidden">
-          <main className="flex-1 grid grid-cols-4 gap-1 h-full">
+        <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden">
+          <main className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-1 h-full overflow-y-auto pb-16 md:pb-0 scrollbar-hide">
             <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
             <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} />
           </main>
 
-          <div className="flex flex-col gap-1 w-7 flex-shrink-0">
-            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={12} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-600" count={doneTasks.length} label="完了" />
-            <DropZoneStrip id="pending_zone" icon={<span className="text-[12px] leading-none mb-0.5">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); }} color="text-amber-600" count={pendingTasks.length} label="保留" />
-            <DropZoneStrip id="watch_zone" icon={<span className="text-[12px] leading-none mb-0.5">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); }} color="text-blue-600" count={watchTasks.length} label="静観" />
-            <DropZoneStrip id="trash_zone" icon={<Trash2 size={12} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); }} color="text-red-900" count={trashTasks.length} label="削除" />
+          <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-2 py-1 md:p-0">
+            <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={16} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
+            <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
+            <DropZoneStrip id="watch_zone" icon={<span className="text-[14px]">👀</span>} active={showWatch} onClick={() => { setShowWatch(!showWatch); setShowDone(false); setShowTrash(false); setShowPending(false); }} color="text-blue-500" count={watchTasks.length} label="静観" />
+            <DropZoneStrip id="trash_zone" icon={<Trash2 size={16} />} active={showTrash} onClick={() => { setShowTrash(!showTrash); setShowDone(false); setShowPending(false); setShowWatch(false); }} color="text-red-500" count={trashTasks.length} label="削除" />
           </div>
 
           {showDone && <SideDrawer id="完了" title="DONE" items={doneTasks} onClose={() => setShowDone(false)} onDelete={deleteTaskPermanently} onUpdateStatus={updateStatus} />}
@@ -254,7 +254,7 @@ function DropZoneStrip({ id, icon, active, onClick, color, count, label }: any) 
 function SideDrawer({ id, title, items, onClose, onDelete, onUpdateStatus }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={clsx("absolute top-0 right-8 bottom-0 w-52 bg-[#0D0F13] border shadow-2xl z-20 flex flex-col rounded-sm transition-colors", isOver ? "border-white/30" : "border-white/10")}>
+    <div ref={setNodeRef} className={clsx("absolute top-0 right-0 left-0 bottom-14 md:bottom-0 md:left-auto md:right-8 md:w-52 bg-[#0D0F13] border shadow-2xl z-40 flex flex-col rounded-sm transition-colors", isOver ? "border-white/30" : "border-white/10")}>
       <div className="flex items-center justify-between px-2 py-1 bg-white/[0.03] border-b border-white/10">
         <h2 className="text-[9px] font-black tracking-widest text-gray-500 uppercase">{title}</h2>
         <button onClick={onClose} className="text-gray-600 hover:text-white">×</button>
@@ -284,7 +284,7 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
   const isInProgress = task.status === '進行中';
 
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-0.5 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10")}>
+    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-1 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10")}>
       <div className="flex items-center gap-1 min-w-0 flex-1 h-full cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
         <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px] select-none">{isInProgress ? '🏃' : (task.category || '---')}</span>
         {isEditing ? (
@@ -293,7 +293,7 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
           <h3 onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className={clsx("truncate font-medium leading-[1.1] tracking-tighter text-[10px] flex-1 cursor-text", isCompleted ? "line-through text-gray-700" : "text-gray-300")}>{task.title}</h3>
         )}
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+      <div className="hidden md:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
         {!isCompleted && !isEditing && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/40 hover:text-emerald-400 p-0.5"><CheckCircle2 size={8} /></button>}
         {!isEditing && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/20 hover:text-red-400 p-0.5"><Trash2 size={8} /></button>}
       </div>
