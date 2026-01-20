@@ -350,8 +350,10 @@ function HelpModal({ onClose }: { onClose: () => void }) {
             <div className="space-y-3 pl-2">
               <div>
                 <p className="text-gray-400 font-bold underline">1. タスクの登録</p>
-                <p className="text-gray-500 italic">「1/21 15時から会議を1時間」「牛乳を買う（至急）」など</p>
-                <p className="text-gray-600">AIが内容・日付・優先度を判別して自動登録します。</p>
+                <p className="text-gray-500 italic">「1/21 15時から会議」「牛乳を買う」など</p>
+                <p className="text-gray-600">
+                  送るだけでAIが自動登録。改行して送れば、<span className="text-emerald-400 font-bold">複数のタスクを一気に登録</span>することも可能です。
+                </p>
               </div>
               <div>
                 <p className="text-gray-400 font-bold underline">2. タイトルの修正</p>
@@ -365,8 +367,12 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               </div>
               <div>
                 <p className="text-gray-400 font-bold underline">4. ステータス変更</p>
-                <p className="text-gray-500 italic">「1 完了」「2 削除」「3 保留」「4 進行中」「5 戻す」</p>
-                <p className="text-gray-600">※削除したものはダッシュボードのゴミ箱から復元可能です。</p>
+                <p className="text-gray-500 italic">「1 完了」「削除 2 3」「4 進行中」「5 戻す」</p>
+                <p className="text-gray-600">※「削除 2 3」のように複数を一括で操作することも可能です。</p>
+              </div>
+              <div className="bg-white/5 p-2 rounded-[1px] border border-white/5">
+                <p className="text-emerald-400 font-bold">💡 ヒント</p>
+                <p className="text-gray-500 italic">全角の「２」や「Ｓ」や「　（スペース）」も自動で判定されるので、そのまま入力してOKです！</p>
               </div>
             </div>
           </section>

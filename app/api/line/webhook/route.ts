@@ -50,35 +50,30 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleMessage(userId: string, replyToken: string, text: string) {
-    // Normalize: Full-width numbers/spaces to half-width
-    const normalizedText = text.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+    // Normalize: Full-width alphanumeric/spaces to half-width
+    const normalizedText = text.replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
         .replace(/　/g, " ")
         .trim();
 
-    // 0. Check for "一覧" command
+    // 0. Global Commands
     if (normalizedText === "一覧" || normalizedText === "いちらん" || normalizedText.toLowerCase() === "list") {
         const tasks = await fetchActiveTasks(userId);
         const flexMessage = generateFlexMessage(userId, tasks);
-        await client.replyMessage({
-            replyToken,
-            messages: [flexMessage],
-        });
+        await client.replyMessage({ replyToken, messages: [flexMessage] });
         return;
     }
 
-    // 0.1 Check for "使い方" command
     if (normalizedText === "使い方" || normalizedText === "ヘルプ" || normalizedText.toLowerCase() === "help") {
         await client.replyMessage({
             replyToken,
             messages: [{
                 type: "text",
-                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n「明日の10時から会議」「牛乳を買う」など、自由に送るだけでAIが優先度を判定して登録します。\n\n2. ステータス変更\n・「1 完了」: 1番を完了へ\n・「2 進行中」: 2番を進行中へ\n・「3 削除」: 3番をゴミ箱へ\n\n3. 詳細操作\n・「2 は S」: 優先度をSに変更\n・「1 は 〇〇 に修正」: タイトルを変更\n\n「一覧」で現在のタスクを確認、「ダッシュボード」で管理画面のリンクを表示します。"
+                text: "【タスク自動整理の使い方】\n\n1. タスクの登録\n自由に送るだけでAIが登録します。改行して一気に入れてもOKです。\n\n2. ランク変更\n・「1 を S」: 1番をSランクへ\n\n3. 内容の修正\n・「1 を 〇〇 に修正」: タイトルを変更\n\n4. 状態の変更\n・「1 完了」「2 進行中」「3 削除」「4 保留」「2 は 削除」など。\n・「削除 2 3」のように複数を一度に消すことも可能です。\n\n「一覧」でリスト表示、「ダッシュボード」で管理画面リンクを表示します。"
             }],
         });
         return;
     }
 
-    // 0.2 Check for "ダッシュボード" command
     if (normalizedText === "ダッシュボード" || normalizedText === "管理画面" || normalizedText.toLowerCase() === "dashboard") {
         const dashboardUrl = `https://task-auto-sorting-app.vercel.app?u=${userId}`;
         await client.replyMessage({
@@ -108,47 +103,101 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         return;
     }
 
-    // 1. Check for Modification Pattern: "1 は 打ち合わせ に修正" または "1 を 打ち合わせ に修正"
+    // 1. Parse Commands Systematically
+    const lines = normalizedText.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+    const results: string[] = [];
+    let processedCommands = 0;
+
+    // Regex Definitions
     const editRegex = /^(\d+)\s*[はを]\s*(.+)\s*に修正$/;
-    const editMatch = normalizedText.match(editRegex);
+    const priorityRegex = /^(\d+)\s*[はを]?\s*([SABC])\s*$/i;
+    const statusEndRegex = /^(\d+)\s*[はを]?\s*(完了|削除|進行中|保留|静観|戻す)$/;
+    const commandStartRegex = /^(完了|削除|進行中|保留|静観|戻す)\s*([\d\s]+)$/;
 
-    if (editMatch) {
-        const displayIndex = parseInt(editMatch[1], 10);
-        const newTitle = editMatch[2].trim();
-        await handleTaskUpdateTitle(userId, replyToken, displayIndex, newTitle);
-        return;
-    }
+    const tasks = await fetchActiveTasks(userId);
 
-    // 2. Check for Priority Change Pattern: "2 は S", "3 を A"
-    const priorityRegex = /^(\d+)\s*[はを]\s*([SABC])\s*$/i;
-    const priorityMatch = normalizedText.match(priorityRegex);
+    for (const line of lines) {
+        // Try matching line as a command
+        let match: any;
 
-    if (priorityMatch) {
-        const displayIndex = parseInt(priorityMatch[1], 10);
-        const newPriority = priorityMatch[2].toUpperCase() as Priority;
-        await handlePriorityUpdate(userId, replyToken, displayIndex, newPriority);
-        return;
-    }
-
-    // 3. Check for Status Update or Delete Pattern: "1 完了", "1 削除"
-    const commandRegex = /^(\d+)\s*(完了|削除|進行中|保留|静観|戻す)$/;
-    const commandMatch = normalizedText.match(commandRegex);
-
-    if (commandMatch) {
-        const displayIndex = parseInt(commandMatch[1], 10);
-        const command = commandMatch[2];
-
-        if (command === '削除') {
-            await handleTaskUpdateStatus(userId, replyToken, displayIndex, '削除済み');
-        } else if (command === '戻す') {
-            await handleTaskUpdateStatus(userId, replyToken, displayIndex, '未処理');
-        } else {
-            await handleTaskUpdateStatus(userId, replyToken, displayIndex, command as Status);
+        // Pattern: "1 を 〇〇 に修正"
+        if (match = line.match(editRegex)) {
+            const idx = parseInt(match[1], 10);
+            const title = match[2];
+            if (tasks[idx - 1]) {
+                await supabase.from('tasks').update({ title }).eq('id', tasks[idx - 1].id);
+                results.push(`「${tasks[idx - 1].title}」→「${title}」`);
+                processedCommands++;
+                continue;
+            }
         }
-    } else {
-        // 4. Default: New Task Analysis
-        await handleNewTask(userId, replyToken, text.trim());
+
+        // Pattern: "1 を S"
+        if (match = line.match(priorityRegex)) {
+            const idx = parseInt(match[1], 10);
+            const priority = match[2].toUpperCase();
+            if (tasks[idx - 1]) {
+                await supabase.from('tasks').update({ priority, status: '未処理' }).eq('id', tasks[idx - 1].id);
+                results.push(`「${tasks[idx - 1].title}」を ${priority}ランクに変更`);
+                processedCommands++;
+                continue;
+            }
+        }
+
+        // Pattern: "1 完了" or "2 は 削除"
+        if (match = line.match(statusEndRegex)) {
+            const idx = parseInt(match[1], 10);
+            const statusStr = match[2];
+            const newStatus = statusStr === '削除' ? '削除済み' : (statusStr === '戻す' ? '未処理' : statusStr);
+            if (tasks[idx - 1]) {
+                await supabase.from('tasks').update({ status: newStatus }).eq('id', tasks[idx - 1].id);
+                results.push(`「${tasks[idx - 1].title}」→ ${statusStr}`);
+                processedCommands++;
+                continue;
+            }
+        }
+
+        // Pattern: "削除 2 3"
+        if (match = line.match(commandStartRegex)) {
+            const statusStr = match[1];
+            const newStatus = statusStr === '削除' ? '削除済み' : (statusStr === '戻す' ? '未処理' : statusStr);
+            const targetIndices = match[2].trim().split(/\s+/).filter(Boolean).map((n: string) => parseInt(n, 10));
+
+            for (const idx of targetIndices) {
+                if (tasks[idx - 1]) {
+                    await supabase.from('tasks').update({ status: newStatus }).eq('id', tasks[idx - 1].id);
+                    results.push(`「${tasks[idx - 1].title}」→ ${statusStr}`);
+                    processedCommands++;
+                }
+            }
+            continue;
+        }
     }
+
+    if (processedCommands > 0) {
+        const updatedTasks = await fetchActiveTasks(userId);
+        const flexMessage = generateFlexMessage(userId, updatedTasks);
+        await client.replyMessage({
+            replyToken,
+            messages: [
+                { type: "text", text: results.join("\n") },
+                flexMessage
+            ],
+        });
+        return;
+    }
+
+    // 2. Default: New Task Analysis (AI)
+    // If it starts with a number but didn't match anything above, it's likely a typo
+    if (/^\d+(\s|$)/.test(normalizedText)) {
+        await client.replyMessage({
+            replyToken,
+            messages: [{ type: "text", text: "コマンドとして理解できませんでした。例：'1 完了' '2 を S' など" }],
+        });
+        return;
+    }
+
+    await handleNewTask(userId, replyToken, text.trim());
 }
 
 // --- Logic Handlers ---
