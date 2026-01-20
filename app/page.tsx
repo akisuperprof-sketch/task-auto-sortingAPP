@@ -157,10 +157,24 @@ function DashboardContent() {
 
   if (!userIdFromUrl) {
     return (
-      <div className="min-h-screen bg-[#050608] flex items-center justify-center text-gray-500 font-sans text-xs uppercase tracking-widest">
-        <div className="text-center space-y-2">
-          <p>Access Denied</p>
-          <p className="text-[10px] opacity-40 italic">Please access via LINE Dashboard link</p>
+      <div className="min-h-screen bg-[#050608] flex items-center justify-center text-gray-400 font-sans p-4">
+        <div className="max-w-xs w-full bg-white/[0.02] border border-white/10 rounded-lg p-6 text-center space-y-4 shadow-2xl">
+          <div className="flex justify-center">
+            <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
+              <Trash2 size={24} />
+            </div>
+          </div>
+          <h2 className="text-sm font-black tracking-widest uppercase">Access Denied</h2>
+          <div className="space-y-2">
+            <p className="text-[10px] leading-relaxed opacity-70">
+              セキュリティー保護のため、このページはLINEの「ダッシュボードを開く」リンクからのみアクセス可能です。
+            </p>
+            <div className="bg-white/5 p-3 rounded text-[9px] text-left space-y-1 text-gray-500 italic">
+              <p>解決方法：</p>
+              <p>1. LINEボットに「一覧」と送信してください。</p>
+              <p>2. 新しく届いたメッセージ内にあるリンクをタップして開いてください。</p>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -55,6 +55,17 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         .replace(/　/g, " ")
         .trim();
 
+    // 0. Check for "一覧" command
+    if (normalizedText === "一覧" || normalizedText === "いちらん" || normalizedText.toLowerCase() === "list") {
+        const tasks = await fetchActiveTasks(userId);
+        const flexMessage = generateFlexMessage(userId, tasks);
+        await client.replyMessage({
+            replyToken,
+            messages: [flexMessage],
+        });
+        return;
+    }
+
     // 1. Check for Modification Pattern: "1 は 打ち合わせ に修正"
     const editRegex = /^(\d+)\s*は\s*(.+)\s*に修正$/;
     const editMatch = normalizedText.match(editRegex);
