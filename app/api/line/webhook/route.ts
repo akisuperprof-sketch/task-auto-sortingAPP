@@ -55,14 +55,19 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
         .replace(/　/g, " ")
         .trim();
 
-    // 1. Check for Status Update Pattern: "1 完了", "2 進行中"
-    const statusRegex = /^(\d+)\s*(完了|進行中|保留|静観|戻す)$/;
-    const statusMatch = normalizedText.match(statusRegex);
+    // 1. Check for Status Update or Delete Pattern: "1 完了", "1 削除"
+    const commandRegex = /^(\d+)\s*(完了|削除|進行中|保留|静観|戻す)$/;
+    const commandMatch = normalizedText.match(commandRegex);
 
-    if (statusMatch) {
-        const displayIndex = parseInt(statusMatch[1], 10);
-        const newStatus = statusMatch[2] as Status;
-        await handleStatusUpdate(userId, replyToken, displayIndex, newStatus);
+    if (commandMatch) {
+        const displayIndex = parseInt(commandMatch[1], 10);
+        const command = commandMatch[2];
+
+        if (command === '削除') {
+            await handleTaskDelete(userId, replyToken, displayIndex);
+        } else {
+            await handleStatusUpdate(userId, replyToken, displayIndex, command as Status);
+        }
     } else {
         // 2. Default: New Task Analysis
         await handleNewTask(userId, replyToken, text.trim());
@@ -78,7 +83,7 @@ async function handleStatusUpdate(userId: string, replyToken: string, displayInd
     if (displayIndex < 1 || displayIndex > tasks.length) {
         await client.replyMessage({
             replyToken,
-            messages: [{ type: "text", text: `Error: Task number ${displayIndex} not found.` }],
+            messages: [{ type: "text", text: `エラー: タスク ${displayIndex} 番は見つかりませんでした。` }],
         });
         return;
     }
@@ -95,7 +100,7 @@ async function handleStatusUpdate(userId: string, replyToken: string, displayInd
         console.error("Supabase update error:", error);
         await client.replyMessage({
             replyToken,
-            messages: [{ type: "text", text: "Failed to update task status." }],
+            messages: [{ type: "text", text: "ステータスの更新に失敗しました。" }],
         });
         return;
     }
@@ -107,7 +112,46 @@ async function handleStatusUpdate(userId: string, replyToken: string, displayInd
     await client.replyMessage({
         replyToken,
         messages: [
-            { type: "text", text: `Task "${targetTask.title}" updated to ${newStatus}.` },
+            { type: "text", text: `タスク「${targetTask.title}」を「${newStatus}」に変更しました。` },
+            flexMessage
+        ],
+    });
+}
+
+async function handleTaskDelete(userId: string, replyToken: string, displayIndex: number) {
+    const tasks = await fetchActiveTasks(userId);
+
+    if (displayIndex < 1 || displayIndex > tasks.length) {
+        await client.replyMessage({
+            replyToken,
+            messages: [{ type: "text", text: `エラー: タスク ${displayIndex} 番は見つかりませんでした。` }],
+        });
+        return;
+    }
+
+    const targetTask = tasks[displayIndex - 1];
+
+    const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', targetTask.id);
+
+    if (error) {
+        console.error("Supabase delete error:", error);
+        await client.replyMessage({
+            replyToken,
+            messages: [{ type: "text", text: "削除に失敗しました。" }],
+        });
+        return;
+    }
+
+    const updatedTasks = await fetchActiveTasks(userId);
+    const flexMessage = generateFlexMessage(updatedTasks);
+
+    await client.replyMessage({
+        replyToken,
+        messages: [
+            { type: "text", text: `タスク「${targetTask.title}」を削除しました。` },
             flexMessage
         ],
     });
@@ -176,7 +220,7 @@ async function handleNewTask(userId: string, replyToken: string, text: string) {
         console.error("AI/Parsing Error:", err);
         await client.replyMessage({
             replyToken,
-            messages: [{ type: "text", text: "Sorry, I couldn't understand that task." }],
+            messages: [{ type: "text", text: "すみません、タスクの内容が理解できませんでした。" }],
         });
     }
 }
@@ -251,7 +295,7 @@ function generateFlexMessage(tasks: Task[]) {
 
     return {
         type: "flex",
-        altText: "Task Dashboard",
+        altText: "タスク一覧",
         contents: {
             type: "bubble",
             header: {
@@ -260,7 +304,7 @@ function generateFlexMessage(tasks: Task[]) {
                 contents: [
                     {
                         type: "text",
-                        text: "Task Dashboard",
+                        text: "タスク一覧",
                         weight: "bold",
                         size: "xl",
                         color: "#1DB446"
@@ -271,7 +315,7 @@ function generateFlexMessage(tasks: Task[]) {
                 type: "box",
                 layout: "vertical",
                 contents: contents.length > 0 ? contents : [
-                    { type: "text", text: "No active tasks!", color: "#aaaaaa", align: "center" }
+                    { type: "text", text: "未処理のタスクはありません", color: "#aaaaaa", align: "center" }
                 ]
             },
             footer: {
@@ -280,10 +324,18 @@ function generateFlexMessage(tasks: Task[]) {
                 contents: [
                     {
                         type: "text",
-                        text: "Ex: '1 完了' to complete",
+                        text: "例: '1 完了' で完了に移動",
                         size: "xs",
                         color: "#aaaaaa",
                         align: "center"
+                    },
+                    {
+                        type: "text",
+                        text: "例: '1 削除' で完全に消去",
+                        size: "xs",
+                        color: "#aaaaaa",
+                        align: "center",
+                        margin: "xs"
                     }
                 ]
             }
