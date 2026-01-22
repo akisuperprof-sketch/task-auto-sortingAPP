@@ -319,19 +319,19 @@ function DashboardContent() {
 
   if (!userIdFromUrl) {
     return (
-      <div className="min-h-screen bg-[#050608] flex items-center justify-center text-gray-400 font-sans p-4">
-        <div className="max-w-xs w-full bg-white/[0.02] border border-white/10 rounded-lg p-6 text-center space-y-4 shadow-2xl">
+      <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center text-gray-500 font-sans p-4">
+        <div className="max-w-xs w-full bg-white border border-gray-100 rounded-lg p-6 text-center space-y-4 shadow-xl">
           <div className="flex justify-center">
-            <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-400">
               <Trash2 size={24} />
             </div>
           </div>
-          <h2 className="text-sm font-black tracking-widest uppercase">Access Denied</h2>
+          <h2 className="text-sm font-black tracking-widest uppercase text-gray-800">Access Denied</h2>
           <div className="space-y-2">
-            <p className="text-[10px] leading-relaxed opacity-70">
-              セキュリティー保護のため、このページはLINEの「ダッシュボードを開く」リンクからのみアクセス可能です。
+            <p className="text-[10px] leading-relaxed text-gray-500">
+              セキュリティ保護のため、このページはLINEの「ダッシュボードを開く」リンクからのみアクセス可能です。
             </p>
-            <div className="bg-white/5 p-3 rounded text-[9px] text-left space-y-1 text-gray-500 italic">
+            <div className="bg-gray-50 p-3 rounded text-[9px] text-left space-y-1 text-gray-400 italic">
               <p>解決方法：</p>
               <p>1. LINEボットに「一覧」と送信してください。</p>
               <p>2. 新しく届いたメッセージ内にあるリンクをタップして開いてください。</p>
@@ -343,11 +343,11 @@ function DashboardContent() {
   }
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-[#050608] text-gray-300 p-1 md:p-2 font-sans antialiased text-[10px] relative overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-[#F8F9FA] text-gray-800 p-1 md:p-2 font-sans antialiased text-[10px] relative overflow-hidden">
       <style jsx global>{`
         @keyframes flash {
-          0% { background-color: rgba(16, 185, 129, 0.2); }
-          50% { background-color: rgba(16, 185, 129, 0.4); }
+          0% { background-color: rgba(16, 185, 129, 0.1); }
+          50% { background-color: rgba(16, 185, 129, 0.2); }
           100% { background-color: transparent; }
         }
         .animate-flash-highlight {
@@ -357,7 +357,7 @@ function DashboardContent() {
 
       {/* Loading Overlay */}
       {loading && !tasks.length && (
-        <div className="absolute inset-0 z-[60] bg-[#050608]/80 backdrop-blur-md flex flex-col items-center justify-center">
+        <div className="absolute inset-0 z-[60] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center">
           <RefreshCw size={24} className="animate-spin text-emerald-500 mb-2" />
           <p className="text-[10px] text-emerald-500 font-black tracking-widest uppercase animate-pulse">SYSTEM LOADING...</p>
         </div>
@@ -365,20 +365,20 @@ function DashboardContent() {
 
       {/* Error Toast */}
       {error && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[70] bg-red-950/90 border border-red-500 text-red-500 px-4 py-2 rounded shadow-2xl flex items-center gap-2">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[70] bg-white border border-red-200 text-red-500 px-4 py-2 rounded shadow-xl flex items-center gap-2">
           <span className="text-xs font-black">!</span>
           <p className="text-[9px] font-bold">{error}</p>
-          <button onClick={() => setError(null)} className="ml-2 hover:text-white">×</button>
+          <button onClick={() => setError(null)} className="ml-2 hover:text-black">×</button>
         </div>
       )}
 
       <header className="max-w-[2200px] w-full mx-auto flex gap-2 md:gap-3 items-center mb-1 px-1 flex-shrink-0 h-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-[9px] md:text-[10px] font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase whitespace-nowrap">
-            タスク自動整理 ver{version}
+          <h1 className="text-[9px] md:text-[10px] font-black tracking-tighter text-gray-900 uppercase whitespace-nowrap">
+            タスク自動整理 <span className="text-gray-400">ver{version}</span>
           </h1>
           {lastFetchedAt && (
-            <span className="text-[7px] text-gray-700 font-mono tracking-tighter uppercase whitespace-nowrap bg-white/5 px-1 rounded-sm border border-white/5">
+            <span className="text-[7px] text-gray-400 font-mono tracking-tighter uppercase whitespace-nowrap bg-gray-100 px-1 rounded-sm">
               Sync: {lastFetchedAt}
             </span>
           )}
@@ -386,32 +386,32 @@ function DashboardContent() {
 
         {/* Search & Add */}
         <div className="flex-1 flex gap-1 items-center">
-          <div className="flex-1 flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
+          <div className="flex-1 flex items-center bg-gray-100/50 border border-gray-200 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
             <span className="text-[8px] mr-1 opacity-40">🔍</span>
             <input
               type="text"
               placeholder="検索..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-[9px] text-white placeholder-gray-700 h-full"
+              className="flex-1 bg-transparent outline-none text-[9px] text-gray-900 placeholder-gray-400 h-full"
             />
-            {searchQuery && <button onClick={() => setSearchQuery('')} className="text-[8px] text-gray-600 hover:text-white">×</button>}
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="text-[8px] text-gray-400 hover:text-gray-900">×</button>}
           </div>
 
-          <div className="flex-[2] flex items-center bg-white/[0.03] border border-white/10 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
+          <div className="flex-[2] flex items-center bg-gray-100/50 border border-gray-200 rounded px-2 h-5 focus-within:border-emerald-500/50 transition-colors">
             <input
               type="text"
-              placeholder="タスクを入力（AIで自動分類）..."
+              placeholder="タスクを入力（AI解析）..."
               value={newTaskValue}
               onChange={(e) => setNewTaskValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-              className="flex-1 bg-transparent outline-none text-[9px] text-white placeholder-gray-700 h-full"
+              className="flex-1 bg-transparent outline-none text-[9px] text-gray-900 placeholder-gray-400 h-full"
               disabled={isAdding}
             />
             <button
               onClick={handleAddTask}
               disabled={isAdding || !newTaskValue.trim()}
-              className={clsx("ml-1 transition-colors", newTaskValue.trim() ? "text-emerald-500" : "text-gray-700")}
+              className={clsx("ml-1 transition-colors", newTaskValue.trim() ? "text-emerald-500" : "text-gray-300")}
             >
               {isAdding ? <RefreshCw size={10} className="animate-spin" /> : <span className="text-xs font-bold">+</span>}
             </button>
@@ -419,10 +419,10 @@ function DashboardContent() {
         </div>
 
         <div className="flex items-center gap-1">
-          <button onClick={() => setShowHelp(true)} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400">
+          <button onClick={() => setShowHelp(true)} className="p-1 hover:bg-gray-100 rounded transition text-gray-400 hover:text-gray-600">
             <HelpCircle size={11} />
           </button>
-          <button onClick={fetchTasks} className="p-1 hover:bg-white/5 rounded transition text-gray-700 hover:text-gray-400" disabled={loading}>
+          <button onClick={fetchTasks} className="p-1 hover:bg-gray-100 rounded transition text-gray-400 hover:text-gray-600" disabled={loading}>
             <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
@@ -432,15 +432,15 @@ function DashboardContent() {
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
           <main className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-0.5 md:gap-1 h-full overflow-hidden">
-            <DroppableColumn id="S" title="S: 重要+緊急" color="text-red-500" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
-            <DroppableColumn id="A" title="A: 緊急のみ" color="text-amber-500" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
-            <DroppableColumn id="B" title="B: 重要のみ" color="text-blue-500" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
-            <DroppableColumn id="C" title="C: 低優先" color="text-emerald-500" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
-            <DroppableColumn id="DEV" title={devRankName} color="text-indigo-400" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveDevName} justAddedIds={justAddedIds} />
-            <DroppableColumn id="IDEA" title={ideaRankName} color="text-pink-400" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveIdeaName} justAddedIds={justAddedIds} />
+            <DroppableColumn id="S" title="S: 重要+緊急" color="text-[#D32F2F]" bgColor="bg-[#FFF5F5]" borderColor="border-[#FFEBEE]" tasks={sTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="A" title="A: 緊急のみ" color="text-[#F57C00]" bgColor="bg-[#FFF9F0]" borderColor="border-[#FFF3E0]" tasks={aTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="B" title="B: 重要のみ" color="text-[#1976D2]" bgColor="bg-[#F0F7FF]" borderColor="border-[#E3F2FD]" tasks={bTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="C" title="C: 低優先" color="text-[#388E3C]" bgColor="bg-[#F1F9F1]" borderColor="border-[#E8F5E9]" tasks={cTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} justAddedIds={justAddedIds} />
+            <DroppableColumn id="DEV" title={devRankName} color="text-[#7B1FA2]" bgColor="bg-[#F9F4FC]" borderColor="border-[#F3E5F5]" tasks={devTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveDevName} justAddedIds={justAddedIds} />
+            <DroppableColumn id="IDEA" title={ideaRankName} color="text-[#C2185B]" bgColor="bg-[#FFF4F9]" borderColor="border-[#FCE4EC]" tasks={ideaTasks} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} updateTitle={updateTitle} updateStatus={updateStatus} isEditableTitle={true} onTitleSave={saveIdeaName} justAddedIds={justAddedIds} />
           </main>
 
-          <div className="fixed bottom-0 left-0 right-0 h-14 bg-[#050608]/90 backdrop-blur-md border-t border-white/10 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
+          <div className="fixed bottom-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-t border-gray-100 flex md:relative md:flex-col md:w-8 md:h-full md:bg-transparent md:border-none md:bottom-auto md:left-auto md:right-auto md:gap-1 z-30 px-1 py-1 md:p-0">
             <DropZoneStrip id="done_zone" icon={<CheckCircle2 size={14} />} active={showDone} onClick={() => { setShowDone(!showDone); setShowTrash(false); setShowPending(false); setShowWatch(false); }} color="text-emerald-500" count={doneTasks.length} label="完了" />
             <DropZoneStrip id="progress_zone" icon={<span className="text-[14px]">🏃</span>} active={false} onClick={() => { }} color="text-cyan-500" count={tasks.filter(t => t.status === '進行中').length} label="進行" />
             <DropZoneStrip id="pending_zone" icon={<span className="text-[14px]">⏸️</span>} active={showPending} onClick={() => { setShowPending(!showPending); setShowDone(false); setShowTrash(false); setShowWatch(false); }} color="text-amber-500" count={pendingTasks.length} label="保留" />
@@ -460,7 +460,7 @@ function DashboardContent() {
   );
 }
 
-function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus, isEditableTitle, onTitleSave, justAddedIds }: any) {
+function DroppableColumn({ id, title, color, bgColor, borderColor, tasks, editingId, editValue, setEditingId, setEditValue, updateTitle, updateStatus, isEditableTitle, onTitleSave, justAddedIds }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [headerValue, setHeaderValue] = useState(title);
@@ -470,12 +470,12 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
   }, [title]);
 
   return (
-    <section ref={setNodeRef} className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
-      <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
+    <section ref={setNodeRef} className={clsx("flex flex-col border rounded-lg overflow-hidden min-w-0 transition-all h-full shadow-sm", bgColor, borderColor, isOver ? "brightness-95 ring-1 ring-gray-200" : "")}>
+      <div className="flex items-center justify-between px-2 py-1 bg-white/30 border-b border-inherit">
         {isEditableTitle && isEditingHeader ? (
           <input
             autoFocus
-            className={clsx("text-[8px] font-black tracking-tighter bg-transparent outline-none w-full", color)}
+            className={clsx("text-[9px] font-black tracking-tighter bg-transparent outline-none w-full", color)}
             value={headerValue}
             onChange={(e) => setHeaderValue(e.target.value)}
             onBlur={() => { onTitleSave(headerValue); setIsEditingHeader(false); }}
@@ -486,16 +486,16 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
           />
         ) : (
           <h2
-            className={clsx("text-[8px] font-black tracking-tighter truncate cursor-pointer", color)}
+            className={clsx("text-[9px] font-black tracking-tighter truncate cursor-pointer", color)}
             onClick={() => isEditableTitle && setIsEditingHeader(true)}
           >
             {title}
           </h2>
         )}
-        <span className="text-[7px] font-mono text-gray-700">{tasks.length}</span>
+        <span className="text-[7px] font-mono font-bold text-gray-400">{tasks.length}</span>
       </div>
       <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[50px]">
+        <div className="flex-1 overflow-y-auto p-1.5 space-y-1 scrollbar-hide min-h-[50px]">
           {tasks.map((task: any) => (
             <TaskItemCompact key={task.id} task={task} isHidden={task.isHiddenBySearch} isNew={justAddedIds.includes(task.id)} isEditing={editingId === task.id} editValue={editValue} onStartEdit={() => { setEditingId(task.id); setEditValue(task.title); }} onEditChange={setEditValue} onSaveEdit={() => updateTitle(task.id, editValue)} onCancelEdit={() => setEditingId(null)} onDone={() => updateStatus(task.id, '完了')} onDelete={() => updateStatus(task.id, '削除済み')} />
           ))}
@@ -508,12 +508,12 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
 function DropZoneStrip({ id, icon, active, onClick, color, count, label }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} onClick={onClick} className={clsx("flex-1 flex flex-col items-center justify-center border border-white/[0.05] rounded-sm transition-all cursor-pointer relative", active ? "bg-white/[0.08]" : "bg-white/[0.01] hover:bg-white/[0.04]", isOver && "border-white/20 bg-white/[0.12] scale-105 shadow-lg z-10")}>
+    <div ref={setNodeRef} onClick={onClick} className={clsx("flex-1 flex flex-col items-center justify-center border border-gray-100 rounded-lg transition-all cursor-pointer relative", active ? "bg-gray-100" : "bg-white hover:bg-gray-50 shadow-sm", isOver && "border-emerald-200 bg-emerald-50 scale-105 shadow-md z-10")}>
       <div className={clsx(color, "flex flex-col items-center", active && "scale-110")}>
         {icon}
-        <span className="text-[5px] font-black leading-none mt-0.5 opacity-50">{label}</span>
+        <span className="text-[5px] font-black leading-none mt-0.5 opacity-60 uppercase">{label}</span>
       </div>
-      <span className="text-[6px] font-mono text-gray-700 mt-0.5">{count}</span>
+      <span className="text-[6px] font-mono font-bold text-gray-400 mt-0.5">{count}</span>
     </div>
   );
 }
@@ -521,25 +521,25 @@ function DropZoneStrip({ id, icon, active, onClick, color, count, label }: any) 
 function SideDrawer({ id, title, items, onClose, onDelete, onUpdateStatus }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={clsx("absolute top-0 right-0 left-0 bottom-14 md:bottom-0 md:left-auto md:right-8 md:w-52 bg-[#0D0F13] border shadow-2xl z-40 flex flex-col rounded-sm transition-colors", isOver ? "border-white/30" : "border-white/10")}>
-      <div className="flex items-center justify-between px-2 py-1 bg-white/[0.03] border-b border-white/10">
-        <h2 className="text-[9px] font-black tracking-widest text-gray-500 uppercase">{title}</h2>
-        <button onClick={onClose} className="text-gray-600 hover:text-white">×</button>
+    <div ref={setNodeRef} className={clsx("absolute top-0 right-0 left-0 bottom-14 md:bottom-0 md:left-auto md:right-8 md:w-64 bg-white border border-gray-200 shadow-2xl z-40 flex flex-col transition-all", isOver ? "ring-2 ring-emerald-100" : "")}>
+      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+        <h2 className="text-[10px] font-black tracking-widest text-gray-500 uppercase">{title}</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-800 text-lg">×</button>
       </div>
-      <div className="flex-1 overflow-y-auto p-1 space-y-1 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-hide">
         {items.map((task: any) => (
-          <div key={task.id} className="p-1.5 bg-white/[0.02] border border-white/[0.04] rounded-[1px] group relative flex items-center justify-between gap-1 overflow-hidden">
+          <div key={task.id} className="p-2 bg-white border border-gray-100 rounded-md group relative flex items-center justify-between gap-2 shadow-sm">
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[6px] text-gray-700 font-bold uppercase truncate">{task.category}</span>
-              <p className={clsx("text-[10px] truncate", task.status === '完了' ? "line-through text-gray-700" : "text-gray-500")}>{task.title}</p>
+              <span className="text-[6px] text-gray-400 font-bold uppercase truncate">{task.category}</span>
+              <p className={clsx("text-[10px] font-medium truncate", task.status === '完了' ? "line-through text-gray-300" : "text-gray-700")}>{task.title}</p>
             </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-              <button onClick={() => onUpdateStatus(task.id, '未処理')} className="text-emerald-500/40 hover:text-emerald-400 p-0.5 border border-white/5 rounded" title="未処理に戻す"><RefreshCw size={8} /></button>
-              <button onClick={() => onDelete(task.id)} className="text-red-900/40 hover:text-red-600 p-0.5 border border-white/5 rounded"><Trash2 size={8} /></button>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => onUpdateStatus(task.id, '未処理')} className="text-emerald-500 hover:bg-emerald-50 p-1 rounded transition-colors" title="未処理に戻す"><RefreshCw size={10} /></button>
+              <button onClick={() => onDelete(task.id)} className="text-red-400 hover:bg-red-50 p-1 rounded transition-colors"><Trash2 size={10} /></button>
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-center py-10 text-[8px] text-gray-800 uppercase italic">Empty</p>}
+        {items.length === 0 && <p className="text-center py-20 text-[8px] text-gray-300 uppercase italic font-bold">No tasks here</p>}
       </div>
     </div>
   );
@@ -552,18 +552,18 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
   const isDev = task.priority === 'DEV';
 
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : (isHidden ? 0.1 : 1) }} className={clsx("group relative flex items-center justify-between gap-1 px-1 py-1 rounded-[1px] transition-colors border border-transparent", isCompleted ? "bg-transparent opacity-20" : "bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.05]", isInProgress && "border-l-emerald-500/50 border-l-2 bg-emerald-500/[0.02]", isEditing && "bg-white/[0.08] border-white/[0.1] z-10", isNew && "animate-flash-highlight bg-emerald-500/10 border-emerald-500/30")}>
-      <div className="flex items-center gap-1 min-w-0 flex-1 h-full cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-        <span className="text-[6px] text-gray-700 font-bold uppercase truncate max-w-[20px] select-none">{isInProgress ? '🏃' : (isDev ? '🛠️' : (task.category || '---'))}</span>
+    <div ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.3 : (isHidden ? 0.1 : 1) }} className={clsx("group relative flex items-center justify-between gap-1 px-2 py-1.5 rounded-md transition-all border", isCompleted ? "bg-transparent border-transparent opacity-40 shadow-none" : "bg-white border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md", isInProgress && "border-l-emerald-400 border-l-4", isEditing && "bg-white ring-2 ring-emerald-400/20 z-10 shadow-lg", isNew && "animate-flash-highlight bg-emerald-50 border-emerald-100")}>
+      <div className="flex items-center gap-1.5 min-w-0 flex-1 h-full cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+        <span className="text-[7px] text-gray-400 font-bold uppercase truncate max-w-[24px] select-none">{isInProgress ? '🏃' : (isDev ? '🛠️' : (task.category || '---'))}</span>
         {isEditing ? (
-          <input autoFocus className="flex-1 bg-transparent text-white outline-none font-medium leading-[1.1] tracking-tighter text-[10px] w-full" value={editValue} onChange={(e) => onEditChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onSaveEdit(); if (e.key === 'Escape') onCancelEdit(); }} onBlur={onSaveEdit} />
+          <input autoFocus className="flex-1 bg-transparent text-gray-900 outline-none font-semibold leading-[1.1] tracking-tighter text-[10px] w-full" value={editValue} onChange={(e) => onEditChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onSaveEdit(); if (e.key === 'Escape') onCancelEdit(); }} onBlur={onSaveEdit} />
         ) : (
-          <h3 onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className={clsx("line-clamp-2 overflow-hidden whitespace-normal font-medium leading-[1.1] tracking-tighter text-[9px] flex-1 cursor-text", isCompleted ? "line-through text-gray-700" : "text-gray-300")}>{task.title}</h3>
+          <h3 onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className={clsx("line-clamp-2 overflow-hidden whitespace-normal font-semibold leading-[1.1] tracking-tighter text-[9.5px] flex-1 cursor-text", isCompleted ? "line-through text-gray-300" : "text-gray-800 hover:text-black")}>{task.title}</h3>
         )}
       </div>
       <div className="hidden md:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
-        {!isCompleted && !isEditing && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-emerald-500/40 hover:text-emerald-400 p-0.5"><CheckCircle2 size={8} /></button>}
-        {!isEditing && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500/20 hover:text-red-400 p-0.5"><Trash2 size={8} /></button>}
+        {!isCompleted && !isEditing && <button onClick={(e) => { e.stopPropagation(); onDone(); }} className="text-gray-300 hover:text-emerald-500 p-0.5 transition-colors"><CheckCircle2 size={10} /></button>}
+        {!isEditing && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-gray-200 hover:text-red-400 p-0.5 transition-colors"><Trash2 size={10} /></button>}
       </div>
     </div>
   );
@@ -571,65 +571,61 @@ function TaskItemCompact({ task, isEditing, editValue, onStartEdit, onEditChange
 
 function HelpModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0D0F13] border border-white/10 rounded-lg w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col">
-        <div className="sticky top-0 bg-[#0D0F13] border-b border-white/10 px-4 py-3 flex justify-between items-center">
-          <h2 className="text-xs font-black tracking-widest text-emerald-400 uppercase">タスク自動整理使い方</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white text-lg">×</button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col">
+        <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-100 px-5 py-4 flex justify-between items-center">
+          <h2 className="text-xs font-black tracking-widest text-emerald-600 uppercase">タスク自動整理 使い方</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-800 text-2xl leading-none">×</button>
         </div>
 
-        <div className="p-4 space-y-6 text-[10px] leading-relaxed">
-          <section className="space-y-2">
-            <h3 className="text-[9px] font-bold text-white border-l-2 border-emerald-500 pl-2 uppercase">LINE での操作</h3>
-            <div className="space-y-3 pl-2">
+        <div className="p-5 space-y-8 text-[11px] leading-relaxed text-gray-600">
+          <section className="space-y-3">
+            <h3 className="text-[10px] font-black text-gray-900 border-l-4 border-emerald-500 pl-3 uppercase">LINE での操作</h3>
+            <div className="space-y-4 pl-3">
               <div>
-                <p className="text-gray-400 font-bold underline">1. タスクの登録</p>
-                <p className="text-gray-500 italic">「1/21 15時から会議」「牛乳を買う」など</p>
-                <p className="text-gray-600">
-                  送るだけでAIが自動登録。改行して送れば、<span className="text-emerald-400 font-bold">複数のタスクを一気に登録</span>することも可能です。
+                <p className="text-gray-800 font-bold">1. タスクの登録</p>
+                <p className="text-gray-400 italic mb-1">例：登録は「牛乳を買う」と送るだけ</p>
+                <p>
+                  送るだけでAIが自動判定。改行して送れば、<span className="text-emerald-600 font-bold">一括登録</span>も可能です。
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 font-bold underline">2. タイトルの修正</p>
-                <p className="text-gray-500 italic">「1 を 〇〇会場に変更 に修正」</p>
-                <p className="text-gray-600">番号を指定して書き換えられます。（「は」でも可）</p>
+                <p className="text-gray-800 font-bold">2. タイトルの修正</p>
+                <p className="text-gray-400 italic mb-1">例：修正は「1 を 〇〇会場に変更 に修正」</p>
+                <p>番号を指定して書き換えられます。</p>
               </div>
               <div>
-                <p className="text-gray-400 font-bold underline">3. ランク（優先度）変更</p>
-                <p className="text-gray-500 italic">「2 を S」「3 は 開発」「4 を メモ」</p>
-                <p className="text-gray-600">S, A, B, C, DEV, IDEA のランクに即座に変更できます。</p>
+                <p className="text-gray-800 font-bold">3. ランク（優先度）変更</p>
+                <p className="text-gray-400 italic mb-1">例：優先度は「2 を ランクAに修正」</p>
+                <p>S / A / B / C / 開発 / メモ などを指定できます。</p>
               </div>
               <div>
-                <p className="text-gray-400 font-bold underline">4. ステータス変更</p>
-                <p className="text-gray-500 italic">「1 完了」「2 開発中」「削除 4 5」「6 進行中」</p>
-                <p className="text-gray-600">※「削除 4 5」のように複数を一括で操作することも可能です。</p>
+                <p className="text-gray-800 font-bold">4. 完了・削除</p>
+                <p className="text-gray-400 italic mb-1">例：削除は「1 削除」</p>
+                <p>1 完了 / 1 削除 / 1 進行中 などの操作が可能です。</p>
               </div>
-              <div className="bg-white/5 p-2 rounded-[1px] border border-white/5">
-                <p className="text-emerald-400 font-bold">💡 ヒント</p>
-                <p className="text-gray-500 italic">全角の「２」や「Ｓ」や「　（スペース）」も自動で判定されるので、そのまま入力してOKです！</p>
+              <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                <p className="text-emerald-700 font-bold mb-1">💡 ヒント</p>
+                <p className="text-emerald-600/80 italic">全角の「２」や「Ｓ」も自動判定されるので、そのまま入力してOKです！</p>
               </div>
             </div>
           </section>
 
-          <section className="space-y-2">
-            <h3 className="text-[9px] font-bold text-white border-l-2 border-cyan-500 pl-2 uppercase">ダッシュボード（スマホ）での操作</h3>
-            <div className="space-y-3 pl-2">
+          <section className="space-y-3">
+            <h3 className="text-[10px] font-black text-gray-900 border-l-4 border-cyan-500 pl-3 uppercase">ダッシュボード</h3>
+            <div className="space-y-4 pl-3">
               <div>
-                <p className="text-gray-400 font-bold underline">1. 状態を変える（ドラッグ）</p>
-                <p className="text-gray-600">タスクを長押しして、下部のアイコンバーまで運んで指を離します。</p>
+                <p className="text-gray-800 font-bold text-[10px]">1. ランク移動（ドラッグ）</p>
+                <p>タスクを掴んで別の列へ運ぶと優先度が変わります。</p>
               </div>
               <div>
-                <p className="text-gray-400 font-bold underline">2. 優先度を変える</p>
-                <p className="text-gray-600">◀ ▶ ガイドに合わせて左右にスワイプして列を切り替え、別の列へタスクをドラッグします。</p>
-              </div>
-              <div>
-                <p className="text-gray-400 font-bold underline">3. 直接編集</p>
-                <p className="text-gray-600">タスクのタイトルを直接タップすると文字を書き換えられます。</p>
+                <p className="text-gray-800 font-bold text-[10px]">2. 状態の変更</p>
+                <p>下部のアイコン（完了・保留など）へドロップすると状態が変わります。</p>
               </div>
             </div>
           </section>
 
-          <button onClick={onClose} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md transition-colors mt-4">
+          <button onClick={onClose} className="w-full bg-gray-900 hover:bg-black text-white font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.98]">
             了解しました
           </button>
         </div>
@@ -640,7 +636,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
 
 export default function Dashboard() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#050608]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#F8F9FA]" />}>
       <DashboardContent />
     </Suspense>
   );

@@ -214,7 +214,10 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
     } else {
         await client.replyMessage({
             replyToken,
-            messages: [{ type: "text", text: `「${text}」が理解できませんでした。` }],
+            messages: [{
+                type: "text",
+                text: `「${text}」が理解できませんでした。以下の例を参考にしてみてください！\n\n📝 登録：タスクを送るだけ\n📝 修正：1 を 〇〇 に修正\n📝 削除：1 削除\n📝 優先度：1 を ランクAに修正\n\n「ヘルプ」で詳細を確認できます。`
+            }],
         });
     }
 }
