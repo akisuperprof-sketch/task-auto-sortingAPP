@@ -8,6 +8,8 @@ import clsx from 'clsx';
 import {
   DndContext,
   closestCenter,
+  closestCorners,
+  rectIntersection,
   useSensor,
   useSensors,
   PointerSensor,
@@ -19,6 +21,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+
+const SYSTEM_VERSION = '26.01.22.20:01';
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -42,6 +46,7 @@ function DashboardContent() {
   const [justAddedIds, setJustAddedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastFetchedAt, setLastFetchedAt] = useState<string>('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -49,9 +54,7 @@ function DashboardContent() {
   );
 
   useEffect(() => {
-    const now = new Date();
-    const formatted = `${now.getFullYear().toString().slice(2)}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    setVersion(formatted);
+    setVersion(SYSTEM_VERSION);
 
     // Show help on first visit
     const lastVersion = localStorage.getItem('help_shown_v1');
@@ -145,6 +148,8 @@ function DashboardContent() {
       notifyError(error, "タスク読み込み");
     } else {
       setTasks(data as Task[]);
+      const now = new Date();
+      setLastFetchedAt(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     }
     setLoading(false);
   };
@@ -361,10 +366,15 @@ function DashboardContent() {
       )}
 
       <header className="max-w-[2200px] w-full mx-auto flex gap-2 md:gap-3 items-center mb-1 px-1 flex-shrink-0 h-6">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <h1 className="text-[9px] md:text-[10px] font-black tracking-tighter bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent uppercase whitespace-nowrap">
             タスク自動整理 ver{version}
           </h1>
+          {lastFetchedAt && (
+            <span className="text-[7px] text-gray-700 font-mono tracking-tighter uppercase whitespace-nowrap bg-white/5 px-1 rounded-sm border border-white/5">
+              Sync: {lastFetchedAt}
+            </span>
+          )}
         </div>
 
         {/* Search & Add */}
@@ -411,7 +421,7 @@ function DashboardContent() {
         </div>
       </header>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
           <main className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-0.5 md:gap-1 h-full overflow-hidden">

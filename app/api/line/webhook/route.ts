@@ -112,7 +112,7 @@ async function handleMessage(userId: string, replyToken: string, text: string) {
     // Regex Definitions
     const statusWords = "完了|削除|進行中|保留|静観|戻す";
     const editRegex = /^(\d+)\s*[はを]\s*(.+)\s*に修正$/;
-    const priorityRegex = /^(\d+)\s*[はを]?\s*([SABC]|DEV|開発|IDEA|アイデア|メモ)\s*$/i;
+    const priorityRegex = /^(\d+)\s*[はをの]?\s*(?:ランク)?\s*([SABC]|DEV|開発|IDEA|アイデア|メモ)(?:\s*(?:に修正|に変更))?\s*$/i;
     const statusEndRegex = new RegExp(`^([\\d\\sと、,]+)\\s*[はを]?\\s*(${statusWords})$`);
     const commandStartRegex = new RegExp(`^(${statusWords})\\s*([\\d\\sと、,]+)$`);
 
