@@ -10,6 +10,7 @@ import {
   closestCenter,
   closestCorners,
   rectIntersection,
+  pointerWithin,
   useSensor,
   useSensors,
   PointerSensor,
@@ -52,6 +53,12 @@ function DashboardContent() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const customCollisionDetection = (args: any) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) return pointerCollisions;
+    return closestCorners(args);
+  };
 
   useEffect(() => {
     setVersion(SYSTEM_VERSION);
@@ -421,7 +428,7 @@ function DashboardContent() {
         </div>
       </header>
 
-      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragEnd={onDragEnd}>
         <div className="flex-1 flex flex-col md:flex-row gap-1 relative overflow-hidden mb-14 md:mb-0">
 
           <main className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-0.5 md:gap-1 h-full overflow-hidden">
@@ -463,7 +470,7 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
   }, [title]);
 
   return (
-    <section className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
+    <section ref={setNodeRef} className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
       <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
         {isEditableTitle && isEditingHeader ? (
           <input
@@ -488,7 +495,7 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
         <span className="text-[7px] font-mono text-gray-700">{tasks.length}</span>
       </div>
       <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[100px]">
+        <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[50px]">
           {tasks.map((task: any) => (
             <TaskItemCompact key={task.id} task={task} isHidden={task.isHiddenBySearch} isNew={justAddedIds.includes(task.id)} isEditing={editingId === task.id} editValue={editValue} onStartEdit={() => { setEditingId(task.id); setEditValue(task.title); }} onEditChange={setEditValue} onSaveEdit={() => updateTitle(task.id, editValue)} onCancelEdit={() => setEditingId(null)} onDone={() => updateStatus(task.id, '完了')} onDelete={() => updateStatus(task.id, '削除済み')} />
           ))}
