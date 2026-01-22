@@ -463,7 +463,7 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
   }, [title]);
 
   return (
-    <section ref={setNodeRef} className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
+    <section className={clsx("flex flex-col bg-white/[0.01] border rounded-sm overflow-hidden min-w-0 transition-colors h-full", isOver ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03]")}>
       <div className="flex items-center justify-between px-1 py-0.5 bg-white/[0.02] border-b border-white/[0.03]">
         {isEditableTitle && isEditingHeader ? (
           <input
@@ -488,7 +488,7 @@ function DroppableColumn({ id, title, color, tasks, editingId, editValue, setEdi
         <span className="text-[7px] font-mono text-gray-700">{tasks.length}</span>
       </div>
       <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[50px]">
+        <div ref={setNodeRef} className="flex-1 overflow-y-auto p-0.5 space-y-0.5 scrollbar-hide min-h-[100px]">
           {tasks.map((task: any) => (
             <TaskItemCompact key={task.id} task={task} isHidden={task.isHiddenBySearch} isNew={justAddedIds.includes(task.id)} isEditing={editingId === task.id} editValue={editValue} onStartEdit={() => { setEditingId(task.id); setEditValue(task.title); }} onEditChange={setEditValue} onSaveEdit={() => updateTitle(task.id, editValue)} onCancelEdit={() => setEditingId(null)} onDone={() => updateStatus(task.id, '完了')} onDelete={() => updateStatus(task.id, '削除済み')} />
           ))}
